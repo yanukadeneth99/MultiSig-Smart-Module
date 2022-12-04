@@ -5,18 +5,18 @@ pragma experimental ABIEncoderV2;
 import "./hyperverse/CloneFactory.sol";
 import "./hyperverse/IHyperverseModule.sol";
 import "./utils/Counters.sol";
-import "./Module.sol";
+import "./MultiSig.sol";
 
 /**
  * @dev Clone Factory Implementation for a Hyperverse Smart Module
  */
 
-contract ModuleFactory is CloneFactory {
+contract MultiSigFactory is CloneFactory {
     using Counters for Counters.Counter;
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T A T E @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
     struct Tenant {
-        Module module;
+        MultiSig module;
         address owner;
     }
 
@@ -27,7 +27,8 @@ contract ModuleFactory is CloneFactory {
 
     address public immutable owner;
     address public immutable masterContract;
-    address private hyperverseAdmin = 0x62a7aa79a52591Ccc62B71729329A80a666fA50f;
+    address private hyperverseAdmin =
+        0x62a7aa79a52591Ccc62B71729329A80a666fA50f;
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -66,12 +67,10 @@ contract ModuleFactory is CloneFactory {
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    function createInstance(address _tenant)
-        external
-        isAuthorized(_tenant)
-        hasAnInstance(_tenant)
-    {
-        Module module = Module(createClone(masterContract));
+    function createInstance(
+        address _tenant
+    ) external isAuthorized(_tenant) hasAnInstance(_tenant) {
+        MultiSig module = MultiSig(createClone(masterContract));
 
         //initializing tenant state of clone
         module.initialize(_tenant);
@@ -86,7 +85,7 @@ contract ModuleFactory is CloneFactory {
         emit TenantCreated(_tenant, address(module));
     }
 
-    function getProxy(address _tenant) public view returns (Module) {
+    function getProxy(address _tenant) public view returns (MultiSig) {
         if (!instance[_tenant]) {
             revert InstanceDoesNotExist();
         }
