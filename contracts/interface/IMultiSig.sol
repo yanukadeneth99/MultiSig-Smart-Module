@@ -43,7 +43,8 @@ interface IMultiSig {
     /// @dev Enum which holds the position of the user (0 - ADMIN, 1 - USER)
     enum Position {
         OWNER,
-        USER
+        USER,
+        INACTIVE
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E R R O R S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -71,4 +72,10 @@ interface IMultiSig {
 
     // Triggered when an interaction on an address is requested but the address does not exist
     error UserNotFound();
+
+    // Trigered when an interaction is called on a vault that has not enough members
+    error NotEnoughUsers();
+
+    // Triggered when you want to do an interaction to yourself that is not allowed
+    error CannotRemoveSelf();
 }
