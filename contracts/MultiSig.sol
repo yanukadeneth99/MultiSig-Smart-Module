@@ -130,7 +130,7 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         }
 
         // Add yourself as admin
-        _v.users.push(User(msg.sender, Position.ADMIN));
+        _v.users.push(User(msg.sender, Position.OWNER));
 
         // Votes will start with one since there is only one owner
         _v.votes = 1;
@@ -157,11 +157,11 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
 
         // Add all the admin people into the object
         for (uint256 i; i < _ownerAddresses.length; i++) {
-            _v.users.push(User(_ownerAddresses[i], Position.ADMIN));
+            _v.users.push(User(_ownerAddresses[i], Position.OWNER));
         }
 
         // Add yourself as admin
-        _v.users.push(User(msg.sender, Position.ADMIN));
+        _v.users.push(User(msg.sender, Position.OWNER));
 
         // Votes will start with one since there is only one owner
         _v.votes = 1;
@@ -193,13 +193,18 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         // Make the address an admin if it exists
         for (uint256 i; i < _v.users.length; i++) {
             if (_ownerAddress == _v.users[i].person) {
-                _v.users[i].position = Position.ADMIN;
+                _v.users[i].position = Position.OWNER;
                 done = true;
             }
         }
 
         if (!done) revert UserNotFound();
     }
+
+    //TODO : Remove owners/users (change the vote count)
+    // TODO : Change votes
+    // TODO : Delete vault
+    // TODO : Vote on a TX (Remember there is a neutral vote)
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ GETTER - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 

@@ -9,24 +9,40 @@ interface IMultiSig {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     /// @dev Vault Object holds all the values required to create and manage a vault
-    /// @dev Owners and Users will have specific permissions
-    /// @dev Votes are the total votes required to pass a transaction (counted from the number of owners)
+    /// @param users User Object which has the address and the position
+    /// @param votes Total votes required to pass a transaction (counted from the number of owners)
     struct Vault {
         User[] users;
         uint256 votes;
     }
 
-    /// @dev User Object which holds all users
-    /// @dev 0 - None, 1 - Admin, 2 - User
+    /// @dev Transaction Object
+    /// @param to The Address you want to do the transaction to
+    /// @param amount The Vault passed in the transaction
+    /// @param data The Data passed in the transaction
+    /// @param done Whether the Transaction is executed
+    /// @param numOfVotes The number of Votes that were casted
+    /// @param votes Mapping of address to the vote (0 - None, 1 - Positive(Yes), 2 - Negative(No), 3 - Withdrawn (Neutral))
+    struct TxObj {
+        address to;
+        uint amount;
+        bytes data;
+        bool done;
+        uint numOfVotes;
+        mapping(address => uint8) votes;
+    }
 
+    /// @dev User Object which holds all users
+    /// @param person The Address of the User
+    /// @param position Position Object which contains the user's position
     struct User {
         address person;
         Position position;
     }
 
-    /// @dev Enum which holds the position of the user
+    /// @dev Enum which holds the position of the user (0 - ADMIN, 1 - USER)
     enum Position {
-        ADMIN,
+        OWNER,
         USER
     }
 
