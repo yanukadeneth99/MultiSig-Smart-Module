@@ -223,9 +223,14 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         if (!done) revert UserNotFound();
     }
 
+    function changeVotes(
+        uint256 index,
+        uint256 voteCount
+    ) external hasVault isOwnerVault(index) {}
+
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ REMOVE - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    /// @dev Remove a user from the Vault
+    /// @dev Remove a user or inactive member from the Vault
     /// @dev UnRecommended for High Gas Fees
     /// TODO : Check Gas Fees
     /// @param _userAddress The Address you want to remove
@@ -242,11 +247,8 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         // Get the Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
-        // There should be two users
+        // There should be atleast 3 members
         if (_v.users.length < 3) revert NotEnoughUsers();
-
-        // Can't remove self
-        if (_userAddress == msg.sender) revert CannotRemoveSelf();
 
         // Local Variables
         uint256 _i;
@@ -254,8 +256,13 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         User[] memory _saveV = new User[](_v.users.length - 1);
 
         // Loop until you find the index of the user that needed to be removed
+        // Can remove users or inactive members
         for (uint256 i; i < _v.users.length; i++) {
-            if (_userAddress == _v.users[i].person) {
+            if (
+                _userAddress == _v.users[i].person &&
+                (_v.users[i].position == Position.USER ||
+                    _v.users[i].position == Position.INACTIVE)
+            ) {
                 _uExists = true;
                 _i = i;
                 break;
@@ -275,6 +282,66 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         _v.users = _saveV;
     }
 
+    /// @dev Remove a user from the Vault
+    /// @dev UnRecommended for High Gas Fees
+    /// TODO : Check Gas Fees
+    /// @param _userAddress The Address you want to remove
+    /// @param index The Vault No
+    function removeOwner(
+        address _userAddress,
+        uint256 index
+    )
+        external
+        hasVault
+        isOwnerVault(index)
+        addressCheck(msg.sender, _userAddress)
+    {
+        // Get the Vault Object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // There should be atleast 3 members
+        if (_v.users.length < 3) revert NotEnoughUsers();
+
+        // Local Variables
+        uint256 _i;
+        bool _uExists;
+        User[] memory _saveV = new User[](_v.users.length - 1);
+
+        // Loop until you find the index of the user that needed to be removed
+        for (uint256 i; i < _v.users.length; i++) {
+            if (
+                _userAddress == _v.users[i].person &&
+                _v.users[i].position == Position.OWNER
+            ) {
+                _uExists = true;
+                _i = i;
+                break;
+            }
+        }
+
+        if (!_uExists) revert UserNotFound();
+
+        // Loop until you find the index of the user that needed to be removed, and just don't add it into the memory array
+        for (uint256 i; i < _v.users.length; i++) {
+            if (i == _i) {
+                continue;
+            }
+            _saveV[i] = _v.users[i];
+        }
+
+        _v.users = _saveV;
+
+        // Change count of approvals needed
+        if (_v.votes - 1 == 0) {
+            _v.votes = 1;
+        } else {
+            _v.votes = _v.votes - 1;
+        }
+    }
+
+    /// @dev Disables the User without removing the user
+    /// @param _userAddress The User address you want to disable
+    /// @param index The Vault No
     function disableUser(
         address _userAddress,
         uint256 index
@@ -286,9 +353,22 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
     {
         // Get the Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Loop until the right person is found, if found, change position
+        bool found;
+
+        for (uint256 i; i < _v.users.length; i++) {
+            if (_userAddress == _v.users[i].person) {
+                _v.users[i].position = Position.INACTIVE;
+                found = true;
+                break;
+            }
+        }
+
+        // If not found, then revert
+        if (!found) revert UserNotFound();
     }
 
-    //TODO : Remove owners/users (change the vote count)
     // TODO : Change votes
     // TODO : Delete vault
     // TODO : Vote on a TX (Remember there is a neutral vote)
