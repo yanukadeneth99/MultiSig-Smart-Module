@@ -12,9 +12,22 @@ interface IMultiSig {
     /// @dev Owners and Users will have specific permissions
     /// @dev Votes are the total votes required to pass a transaction (counted from the number of owners)
     struct Vault {
-        address[] owners;
-        address[] users;
+        User[] users;
         uint256 votes;
+    }
+
+    /// @dev User Object which holds all users
+    /// @dev 0 - None, 1 - Admin, 2 - User
+
+    struct User {
+        address person;
+        Position position;
+    }
+
+    /// @dev Enum which holds the position of the user
+    enum Position {
+        ADMIN,
+        USER
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E R R O R S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -36,4 +49,10 @@ interface IMultiSig {
 
     // Triggered when a functionality is done on an address that does not belong to any vault
     error AddressNotInAVault();
+
+    // Triggered when a caller uses a function that only a owner can do
+    error NotAnOwner();
+
+    // Triggered when an interaction on an address is requested but the address does not exist
+    error UserNotFound();
 }
