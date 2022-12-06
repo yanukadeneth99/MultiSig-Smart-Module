@@ -7,6 +7,7 @@ import "./hyperverse/Initializable.sol";
 import "./interface/IMultiSig.sol";
 
 // TODO : Gas optimizations - Use mload instead of sload (Load variables into memory than storage)
+// TODO : Gas optimizations - Use Remix Gas Optimizer
 
 /// @title MultiSig Main Contract
 /// @author Yashura
@@ -203,6 +204,29 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         }
     }
 
+    /// @dev Create a Transaction
+    /// @param to The Address to transfer
+    /// @param value The amount in Wei
+    /// @param index The Vault ID
+    function createTransaction(
+        address to,
+        uint256 value,
+        uint256 index
+    ) external hasVault addressCheck(msg.sender, to) {
+        // Create a transaction Object
+        TxObj memory _tx;
+
+        // Set the Values, rest will be default
+        _tx.to = to;
+        _tx.amount = value;
+
+        // Get Vault Object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Add in the transaction
+        _v.transactions.push(_tx);
+    }
+
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EDIT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     /// @dev Make an added User as Owner
@@ -280,6 +304,31 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
 
         // Set it as active
         _v.status = Status.ACTIVE;
+    }
+
+    /// @dev Edit an existing transaction
+    /// @notice Editing can only be done if there are no votes to the transaction to prevent exploits
+    /// @param index The Vault ID
+    /// @param txIndex The transaction ID
+    /// @param to The new Address to send
+    /// @param amount The New Amount in Wei
+    function editTransaction(
+        uint256 index,
+        uint256 txIndex,
+        address to,
+        uint256 amount
+    ) external hasVault {
+        // Get the Transaction Object
+        TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
+            txIndex
+        ];
+
+        // Revert if there are votes already
+        if (_tx.votes.length > 0) revert VotedTransaction();
+
+        // Change the data
+        _tx.to = to;
+        _tx.amount = amount;
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ REMOVE - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -448,9 +497,9 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         _v.status = Status.INACTIVE;
     }
 
+    //? Does this make sense
     function deleteVault(uint256 index) external hasVault isOwnerVault(index) {}
 
-    // TODO : Delete vault
     // TODO : Vote on a TX (Remember there is a neutral vote)
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ GETTER - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -473,5 +522,25 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         returns (uint256[] memory)
     {
         return _vaultId[msg.sender];
+    }
+
+    /// @dev Get all the Transactions with the ID
+    /// @param index The Vault ID
+    /// @return The Transaction Array which contains the ID and the transaction.
+    function getAllTransactions(
+        uint256 index
+    ) external view hasVault returns (AllTxObj[] memory) {
+        // Get all the transactions of the vault
+        Vault memory _v = _vaults[_vaultId[msg.sender][index]];
+
+        // New Transaction Object with ID
+        AllTxObj[] memory _allTx;
+
+        // Set the Transaction and the ID(Index) into a new struct
+        for (uint256 i; i < _v.transactions.length; i++) {
+            _allTx[i] = AllTxObj(i, _v.transactions[i]);
+        }
+
+        return _allTx;
     }
 }

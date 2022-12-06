@@ -15,6 +15,7 @@ interface IMultiSig {
     struct Vault {
         User[] users;
         uint256 votes;
+        TxObj[] transactions;
         Status status;
     }
 
@@ -23,15 +24,21 @@ interface IMultiSig {
     /// @param amount The Vault passed in the transaction
     /// @param data The Data passed in the transaction
     /// @param done Whether the Transaction is executed
-    /// @param numOfVotes The number of Votes that were casted
-    /// @param votes Mapping of address to the vote (0 - None, 1 - Positive(Yes), 2 - Negative(No), 3 - Withdrawn (Neutral))
+    /// @param votes The Total Votes that were done
     struct TxObj {
         address to;
         uint amount;
         bytes data;
         bool done;
-        uint numOfVotes;
-        mapping(address => uint8) votes;
+        Vote[] votes;
+    }
+
+    /// @dev Transaction Object used to Get all transactions with their ID
+    /// @param ID The index of the transaction in the `transactions` array in `Vault`
+    /// @param transaction The Transaction Object
+    struct AllTxObj {
+        uint256 Id;
+        TxObj transaction;
     }
 
     /// @dev User Object which holds all users
@@ -40,6 +47,14 @@ interface IMultiSig {
     struct User {
         address person;
         Position position;
+    }
+
+    /// @dev The Vote Object which holds all votes
+    /// @param person The Address of the person voting
+    /// @param vote The ID of the vote (0 - None, 1 - Positive(Yes), 2 - Negative(No), 3 - Withdrawn (Neutral))
+    struct Vote {
+        address person;
+        uint8 vote;
     }
 
     /// @dev Enum which holds the position of the user (0 - ADMIN, 1 - USER)
@@ -99,4 +114,7 @@ interface IMultiSig {
 
     // Triggered when a vault is called to disable but it is already disable
     error AlreadyInactiveVault();
+
+    // Triggered when an edit to a transaction is called on a Transaction which already has votes
+    error VotedTransaction();
 }
