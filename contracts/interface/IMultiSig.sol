@@ -4,7 +4,12 @@ pragma solidity ^0.8.0;
 interface IMultiSig {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
+    // TODO : Set this up
+    // Event Emitted when an amount is sent to the contract
     event Deposit(address indexed sender, uint256 amount, uint256 balance);
+
+    // Emitted when a transaction is done
+    event SuccessTransaction(address indexed receiver, uint256 transactionId, uint256 indexed vaultId, uint256 amount);
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -121,4 +126,7 @@ interface IMultiSig {
     // Triggered when you try to vote again, with the same voting decision
     /// @param vote The Vote ID you have already done
     error SameVote(uint8 vote);
+
+    // Triggered when someone requests a do proceed with a transaction that does not exist
+    error NullTransaction();
 }
