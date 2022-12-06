@@ -5,14 +5,21 @@ pragma experimental ABIEncoderV2;
 import "./hyperverse/IHyperverseModule.sol";
 import "./hyperverse/Initializable.sol";
 import "./interface/IMultiSig.sol";
+import "./helpers/ReentrancyGuard.sol";
 
 // TODO : Gas optimizations - Use mload instead of sload (Load variables into memory than storage)
 // TODO : Gas optimizations - Use Remix Gas Optimizer
+// TODO : Do events
 
 /// @title MultiSig Main Contract
 /// @author Yashura
 /// @dev This is a contract to handle Multi-Sig Vaults.
-contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
+contract MultiSig is
+    IMultiSig,
+    IHyperverseModule,
+    Initializable,
+    ReentrancyGuard
+{
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T A T E @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     // Account used to deploy contract
@@ -183,27 +190,6 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         _v.status = Status.ACTIVE;
     }
 
-    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ADD - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
-    /// @dev Owners are able to add users if the user already doesn't exist
-    /// @param _userAddresses The userrs you want to add into your vault
-    /// @param index The Vault No
-    function addUsers(
-        address[] calldata _userAddresses,
-        uint256 index
-    ) external hasVault isOwnerVault(index) addressArrayCheck(_userAddresses) {
-        // Get the Vault
-        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
-
-        // Vault must be active
-        if (_v.status == Status.INACTIVE) revert InActiveVault();
-
-        // Add in the users
-        for (uint256 i; i < _userAddresses.length; i++) {
-            _v.users.push(User(_userAddresses[i], Position.USER));
-        }
-    }
-
     /// @dev Create a Transaction
     /// @param to The Address to transfer
     /// @param value The amount in Wei
@@ -227,7 +213,83 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         _v.transactions.push(_tx);
     }
 
+    /// @dev Create a Transaction with Data
+    /// @param to The Address to transfer
+    /// @param value The amount in Wei
+    /// @param index The Vault ID
+    /// @param data Data to be passed in the transaction
+
+    function createTransaction(
+        address to,
+        uint256 value,
+        uint256 index,
+        bytes calldata data
+    ) external hasVault addressCheck(msg.sender, to) {
+        // Create a transaction Object
+        TxObj memory _tx;
+
+        // Set the Values, rest will be default
+        _tx.to = to;
+        _tx.amount = value;
+        _tx.data = data;
+
+        // Get Vault Object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Add in the transaction
+        _v.transactions.push(_tx);
+    }
+
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EDIT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+    /// @dev Perform a Vote, Owners only
+    /// @param index The Vault ID
+    /// @param transactionId The Transaction ID
+    /// @param decision The Decision ID (0 - None, 1 - Positive(Yes), 2 - Negative(No), 3 - Withdrawn (Neutral))
+    function vote(
+        uint256 index,
+        uint256 transactionId,
+        uint8 decision
+    ) external hasVault isOwnerVault(index) {
+        // Get the Transaction Object
+        TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
+            transactionId
+        ];
+
+        // If already voted, then change the vote, revert if it's the same vote
+        for (uint256 i; i < _tx.votes.length; i++) {
+            if (_tx.votes[i].person == msg.sender) {
+                // If it's the same vote, then revert
+                if (_tx.votes[i].vote == decision) revert SameVote(decision);
+
+                // Else Do the vote and return
+                _tx.votes[i].vote = decision;
+                return;
+            }
+        }
+
+        // No vote is already done, add it
+        _tx.votes.push(Vote(msg.sender, decision));
+    }
+
+    /// @dev Owners are able to add users if the user already doesn't exist
+    /// @param _userAddresses The userrs you want to add into your vault
+    /// @param index The Vault No
+    function addUsers(
+        address[] calldata _userAddresses,
+        uint256 index
+    ) external hasVault isOwnerVault(index) addressArrayCheck(_userAddresses) {
+        // Get the Vault
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Vault must be active
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
+        // Add in the users
+        for (uint256 i; i < _userAddresses.length; i++) {
+            _v.users.push(User(_userAddresses[i], Position.USER));
+        }
+    }
 
     /// @dev Make an added User as Owner
     /// @notice You need to add a user using `addUsers` first
@@ -329,6 +391,18 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         // Change the data
         _tx.to = to;
         _tx.amount = amount;
+    }
+
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ PERFORM - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+    function transaction(
+        uint256 index,
+        uint256 transactionId
+    ) external nonReentrant hasVault {
+        // Get the Transaction Object
+        TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
+            transactionId
+        ];
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ REMOVE - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -543,4 +617,6 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
 
         return _allTx;
     }
+
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ PAYMENT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 }

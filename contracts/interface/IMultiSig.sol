@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 interface IMultiSig {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    ///+events
+    event Deposit(address indexed sender, uint256 amount, uint256 balance);
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -117,4 +117,8 @@ interface IMultiSig {
 
     // Triggered when an edit to a transaction is called on a Transaction which already has votes
     error VotedTransaction();
+
+    // Triggered when you try to vote again, with the same voting decision
+    /// @param vote The Vote ID you have already done
+    error SameVote(uint8 vote);
 }
