@@ -6,6 +6,8 @@ import "./hyperverse/IHyperverseModule.sol";
 import "./hyperverse/Initializable.sol";
 import "./interface/IMultiSig.sol";
 
+// TODO : Gas optimizations - Use mload instead of sload (Load variables into memory than storage)
+
 /// @title MultiSig Main Contract
 /// @author Yashura
 /// @dev This is a contract to handle Multi-Sig Vaults.
@@ -138,6 +140,9 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
 
         // Votes will start with one since there is only one owner
         _v.votes = 1;
+
+        // Vault will be active
+        _v.status = Status.ACTIVE;
     }
 
     /// @dev Creates a Vault with multiple users and multiple owners
@@ -172,6 +177,9 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
 
         // Votes will start with one since there is only one owner
         _v.votes = 1;
+
+        // Vault will be active
+        _v.status = Status.ACTIVE;
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ADD - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -183,8 +191,13 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         address[] calldata _userAddresses,
         uint256 index
     ) external hasVault isOwnerVault(index) addressArrayCheck(_userAddresses) {
-        // Add in the users
+        // Get the Vault
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Vault must be active
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
+        // Add in the users
         for (uint256 i; i < _userAddresses.length; i++) {
             _v.users.push(User(_userAddresses[i], Position.USER));
         }
@@ -205,7 +218,13 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         isOwnerVault(index)
         addressCheck(msg.sender, _ownerAddress)
     {
+        // Get Vault
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Vault must be active
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
+        // Flag
         bool done;
 
         // Make the address an admin if it exists
@@ -220,13 +239,48 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
             }
         }
 
+        // If User not found, revert
         if (!done) revert UserNotFound();
     }
 
-    function changeVotes(
+    /// @dev Set the Necessary Vote Count to approve any Transaction
+    /// @param index The Vault ID
+    /// @param voteCount The Vote Count
+    function setVotesCount(
         uint256 index,
         uint256 voteCount
-    ) external hasVault isOwnerVault(index) {}
+    ) external hasVault isOwnerVault(index) {
+        // Get the Vault Object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Vault must be active
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
+        // Votes cannot be higher than admin count
+        User[] memory _u;
+
+        for (uint256 i; i < _v.users.length; i++) {
+            if (_v.users[i].position == Position.OWNER) _u[i] = _v.users[i];
+        }
+
+        if (voteCount > _u.length) revert VoteCountTooHigh(_u.length);
+
+        // Set Votes
+        _v.votes = voteCount;
+    }
+
+    /// @dev Enabled a disabled Vault
+    /// @param index The Vault ID
+    function enableVault(uint256 index) external hasVault isOwnerVault(index) {
+        // Get Vault object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Vault should be disabled
+        if (_v.status == Status.ACTIVE) revert AlreadyActiveVault();
+
+        // Set it as active
+        _v.status = Status.ACTIVE;
+    }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ REMOVE - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -246,6 +300,9 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
     {
         // Get the Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Vault must be active
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
 
         // There should be atleast 3 members
         if (_v.users.length < 3) revert NotEnoughUsers();
@@ -299,6 +356,9 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         // Get the Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
+        // Vault must be active
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
         // There should be atleast 3 members
         if (_v.users.length < 3) revert NotEnoughUsers();
 
@@ -339,6 +399,8 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         }
     }
 
+    // TODO : Enable user and enable owner functions
+
     /// @dev Disables the User without removing the user
     /// @param _userAddress The User address you want to disable
     /// @param index The Vault No
@@ -354,9 +416,13 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         // Get the Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
-        // Loop until the right person is found, if found, change position
+        // Vault must be active
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
+        // Flag
         bool found;
 
+        // Loop until the right person is found, if found, change position
         for (uint256 i; i < _v.users.length; i++) {
             if (_userAddress == _v.users[i].person) {
                 _v.users[i].position = Position.INACTIVE;
@@ -369,7 +435,21 @@ contract MultiSig is IMultiSig, IHyperverseModule, Initializable {
         if (!found) revert UserNotFound();
     }
 
-    // TODO : Change votes
+    /// @dev Set the Status of the Vault as Disabled
+    /// @param index The Vault ID
+    function disableVault(uint256 index) external hasVault isOwnerVault(index) {
+        // Get Vault Object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        //  Vault must be active
+        if (_v.status == Status.INACTIVE) revert AlreadyInactiveVault();
+
+        // Set the Vault as Disabled
+        _v.status = Status.INACTIVE;
+    }
+
+    function deleteVault(uint256 index) external hasVault isOwnerVault(index) {}
+
     // TODO : Delete vault
     // TODO : Vote on a TX (Remember there is a neutral vote)
 

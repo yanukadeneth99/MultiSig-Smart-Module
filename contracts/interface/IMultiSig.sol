@@ -11,9 +11,11 @@ interface IMultiSig {
     /// @dev Vault Object holds all the values required to create and manage a vault
     /// @param users User Object which has the address and the position
     /// @param votes Total votes required to pass a transaction (counted from the number of owners)
+    /// @param status The Status of the Vault (Active, Inactive)
     struct Vault {
         User[] users;
         uint256 votes;
+        Status status;
     }
 
     /// @dev Transaction Object
@@ -44,6 +46,12 @@ interface IMultiSig {
     enum Position {
         OWNER,
         USER,
+        INACTIVE
+    }
+
+    /// @dev Enum which holds the status of the Vault
+    enum Status {
+        ACTIVE,
         INACTIVE
     }
 
@@ -78,4 +86,17 @@ interface IMultiSig {
 
     // Triggered when you want to do an interaction to yourself that is not allowed
     error CannotRemoveSelf();
+
+    // Triggered when you set Votes neccessary to a number higher than the owner count
+    /// @param owners The number of owners that exist in the vault
+    error VoteCountTooHigh(uint256 owners);
+
+    // Triggered when an operation is requested on a Vault that is inactive
+    error InActiveVault();
+
+    // Triggered when a vault is called to active but it is already active
+    error AlreadyActiveVault();
+
+    // Triggered when a vault is called to disable but it is already disable
+    error AlreadyInactiveVault();
 }
