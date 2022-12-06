@@ -10,6 +10,7 @@ import "./helpers/ReentrancyGuard.sol";
 // TODO : Gas optimizations - Use mload instead of sload (Load variables into memory than storage)
 // TODO : Gas optimizations - Use Remix Gas Optimizer
 // TODO : Do events
+// TODO : Do `delete arr[index];`
 
 /// @title MultiSig Main Contract
 /// @author Yashura
@@ -46,9 +47,7 @@ contract MultiSig is
 
     // Is the caller the Tenant Owner
     modifier isTenantOwner() {
-        if (msg.sender != _tenantOwner) {
-            revert Unauthorized();
-        }
+        if (msg.sender != _tenantOwner) revert Unauthorized();
         _;
     }
 
@@ -194,24 +193,24 @@ contract MultiSig is
     /// @param to The Address to transfer
     /// @param value The amount in Wei
     /// @param index The Vault ID
-    function createTransaction(
-        address to,
-        uint256 value,
-        uint256 index
-    ) external hasVault addressCheck(msg.sender, to) {
-        // Create a transaction Object
-        TxObj memory _tx;
+    // function createTransaction(
+    //     address to,
+    //     uint256 value,
+    //     uint256 index
+    // ) external hasVault addressCheck(msg.sender, to) {
+    //     // Create a transaction Object
+    //     TxObj memory _tx;
 
-        // Set the Values, rest will be default
-        _tx.to = to;
-        _tx.amount = value;
+    //     // Set the Values, rest will be default
+    //     _tx.to = to;
+    //     _tx.amount = value;
 
-        // Get Vault Object
-        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    //     // Get Vault Object
+    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
-        // Add in the transaction
-        _v.transactions.push(_tx);
-    }
+    //     // Add in the transaction
+    //     _v.transactions.push(_tx);
+    // }
 
     /// @dev Create a Transaction with Data
     /// @param to The Address to transfer
@@ -219,26 +218,26 @@ contract MultiSig is
     /// @param index The Vault ID
     /// @param data Data to be passed in the transaction
 
-    function createTransaction(
-        address to,
-        uint256 value,
-        uint256 index,
-        bytes calldata data
-    ) external hasVault addressCheck(msg.sender, to) {
-        // Create a transaction Object
-        TxObj memory _tx;
+    // function createTransaction(
+    //     address to,
+    //     uint256 value,
+    //     uint256 index,
+    //     uint256 data
+    // ) external hasVault addressCheck(msg.sender, to) {
+    //     // Create a transaction Object
+    //     TxObj memory _tx;
 
-        // Set the Values, rest will be default
-        _tx.to = to;
-        _tx.amount = value;
-        _tx.data = data;
+    //     // Set the Values, rest will be default
+    //     _tx.to = to;
+    //     _tx.amount = value;
+    //     // _tx.data = data;
 
-        // Get Vault Object
-        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    //     // Get Vault Object
+    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
-        // Add in the transaction
-        _v.transactions.push(_tx);
-    }
+    //     // Add in the transaction
+    //     _v.transactions.push(_tx);
+    // }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EDIT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -395,6 +394,7 @@ contract MultiSig is
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ PERFORM - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
+    // TODO : Complete
     function transaction(
         uint256 index,
         uint256 transactionId
@@ -412,115 +412,115 @@ contract MultiSig is
     /// TODO : Check Gas Fees
     /// @param _userAddress The Address you want to remove
     /// @param index The Vault No
-    function removeUser(
-        address _userAddress,
-        uint256 index
-    )
-        external
-        hasVault
-        isOwnerVault(index)
-        addressCheck(msg.sender, _userAddress)
-    {
-        // Get the Vault Object
-        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    // function removeUser(
+    //     address _userAddress,
+    //     uint256 index
+    // )
+    //     external
+    //     hasVault
+    //     isOwnerVault(index)
+    //     addressCheck(msg.sender, _userAddress)
+    // {
+    //     // Get the Vault Object
+    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
-        // Vault must be active
-        if (_v.status == Status.INACTIVE) revert InActiveVault();
+    //     // Vault must be active
+    //     if (_v.status == Status.INACTIVE) revert InActiveVault();
 
-        // There should be atleast 3 members
-        if (_v.users.length < 3) revert NotEnoughUsers();
+    //     // There should be atleast 3 members
+    //     if (_v.users.length < 3) revert NotEnoughUsers();
 
-        // Local Variables
-        uint256 _i;
-        bool _uExists;
-        User[] memory _saveV = new User[](_v.users.length - 1);
+    //     // Local Variables
+    //     uint256 _i;
+    //     bool _uExists;
+    //     User[] memory _saveV = new User[](_v.users.length - 1);
 
-        // Loop until you find the index of the user that needed to be removed
-        // Can remove users or inactive members
-        for (uint256 i; i < _v.users.length; i++) {
-            if (
-                _userAddress == _v.users[i].person &&
-                (_v.users[i].position == Position.USER ||
-                    _v.users[i].position == Position.INACTIVE)
-            ) {
-                _uExists = true;
-                _i = i;
-                break;
-            }
-        }
+    //     // Loop until you find the index of the user that needed to be removed
+    //     // Can remove users or inactive members
+    //     for (uint256 i; i < _v.users.length; i++) {
+    //         if (
+    //             _userAddress == _v.users[i].person &&
+    //             (_v.users[i].position == Position.USER ||
+    //                 _v.users[i].position == Position.INACTIVE)
+    //         ) {
+    //             _uExists = true;
+    //             _i = i;
+    //             break;
+    //         }
+    //     }
 
-        if (!_uExists) revert UserNotFound();
+    //     if (!_uExists) revert UserNotFound();
 
-        // Loop until you find the index of the user that needed to be removed, and just don't add it into the memory array
-        for (uint256 i; i < _v.users.length; i++) {
-            if (i == _i) {
-                continue;
-            }
-            _saveV[i] = _v.users[i];
-        }
+    //     // Loop until you find the index of the user that needed to be removed, and just don't add it into the memory array
+    //     for (uint256 i; i < _v.users.length; i++) {
+    //         if (i == _i) {
+    //             continue;
+    //         }
+    //         _saveV[i] = _v.users[i];
+    //     }
 
-        _v.users = _saveV;
-    }
+    //     _v.users = _saveV;
+    // }
 
     /// @dev Remove a user from the Vault
     /// @dev UnRecommended for High Gas Fees
     /// TODO : Check Gas Fees
     /// @param _userAddress The Address you want to remove
     /// @param index The Vault No
-    function removeOwner(
-        address _userAddress,
-        uint256 index
-    )
-        external
-        hasVault
-        isOwnerVault(index)
-        addressCheck(msg.sender, _userAddress)
-    {
-        // Get the Vault Object
-        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    // function removeOwner(
+    //     address _userAddress,
+    //     uint256 index
+    // )
+    //     external
+    //     hasVault
+    //     isOwnerVault(index)
+    //     addressCheck(msg.sender, _userAddress)
+    // {
+    //     // Get the Vault Object
+    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
-        // Vault must be active
-        if (_v.status == Status.INACTIVE) revert InActiveVault();
+    //     // Vault must be active
+    //     if (_v.status == Status.INACTIVE) revert InActiveVault();
 
-        // There should be atleast 3 members
-        if (_v.users.length < 3) revert NotEnoughUsers();
+    //     // There should be atleast 3 members
+    //     if (_v.users.length < 3) revert NotEnoughUsers();
 
-        // Local Variables
-        uint256 _i;
-        bool _uExists;
-        User[] memory _saveV = new User[](_v.users.length - 1);
+    //     // Local Variables
+    //     uint256 _i;
+    //     bool _uExists;
+    //     User[] memory _saveV = new User[](_v.users.length - 1);
 
-        // Loop until you find the index of the user that needed to be removed
-        for (uint256 i; i < _v.users.length; i++) {
-            if (
-                _userAddress == _v.users[i].person &&
-                _v.users[i].position == Position.OWNER
-            ) {
-                _uExists = true;
-                _i = i;
-                break;
-            }
-        }
+    //     // Loop until you find the index of the user that needed to be removed
+    //     for (uint256 i; i < _v.users.length; i++) {
+    //         if (
+    //             _userAddress == _v.users[i].person &&
+    //             _v.users[i].position == Position.OWNER
+    //         ) {
+    //             _uExists = true;
+    //             _i = i;
+    //             break;
+    //         }
+    //     }
 
-        if (!_uExists) revert UserNotFound();
+    //     if (!_uExists) revert UserNotFound();
 
-        // Loop until you find the index of the user that needed to be removed, and just don't add it into the memory array
-        for (uint256 i; i < _v.users.length; i++) {
-            if (i == _i) {
-                continue;
-            }
-            _saveV[i] = _v.users[i];
-        }
+    //     // Loop until you find the index of the user that needed to be removed, and just don't add it into the memory array
+    //     for (uint256 i; i < _v.users.length; i++) {
+    //         if (i == _i) {
+    //             continue;
+    //         }
+    //         _saveV[i] = _v.users[i];
+    //     }
 
-        _v.users = _saveV;
+    //     _v.users = _saveV;
 
-        // Change count of approvals needed
-        if (_v.votes - 1 == 0) {
-            _v.votes = 1;
-        } else {
-            _v.votes = _v.votes - 1;
-        }
-    }
+    //     // Change count of approvals needed
+    //     if (_v.votes - 1 == 0) {
+    //         _v.votes = 1;
+    //     } else {
+    //         _v.votes = _v.votes - 1;
+    //     }
+    // }
 
     // TODO : Enable user and enable owner functions
 
@@ -587,8 +587,8 @@ contract MultiSig is
         return _vaults[_vaultId[msg.sender][index]];
     }
 
-    /// @dev Get All the Vault IDs the caller has joined
-    /// @return All the Vault IDs the user has joined - `uint256[]`
+    // /// @dev Get All the Vault IDs the caller has joined
+    // /// @return All the Vault IDs the user has joined - `uint256[]`
     function getAllVaultCount()
         external
         view
@@ -598,9 +598,9 @@ contract MultiSig is
         return _vaultId[msg.sender];
     }
 
-    /// @dev Get all the Transactions with the ID
-    /// @param index The Vault ID
-    /// @return The Transaction Array which contains the ID and the transaction.
+    // /// @dev Get all the Transactions with the ID
+    // /// @param index The Vault ID
+    // /// @return The Transaction Array which contains the ID and the transaction.
     function getAllTransactions(
         uint256 index
     ) external view hasVault returns (AllTxObj[] memory) {
@@ -618,5 +618,4 @@ contract MultiSig is
         return _allTx;
     }
 
-    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ PAYMENT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 }
