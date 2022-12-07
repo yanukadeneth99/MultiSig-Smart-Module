@@ -18,9 +18,11 @@ interface IMultiSig {
     /// @param votes Total votes required to pass a transaction (counted from the number of owners)
     /// @param status The Status of the Vault (Active, Inactive)
     struct Vault {
-        User[] users;
-        uint256 votes;
-        TxObj[] transactions;
+        mapping(uint256 => User) users;
+        uint256 userCount;
+        uint256 votesReq;
+        mapping(uint256 => TxObj) transactions;
+        uint256 transactionCount;
         Status status;
     }
 
@@ -35,7 +37,8 @@ interface IMultiSig {
         uint amount;
         bytes data;
         bool done;
-        Vote[] votes;
+        mapping(uint256 => Vote) votes;
+        uint256 voteCount;
     }
 
     /// @dev Transaction Object used to Get all transactions with their ID
