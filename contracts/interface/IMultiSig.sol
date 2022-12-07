@@ -134,4 +134,10 @@ interface IMultiSig {
 
     // Triggered when someone requests a do proceed with a transaction that does not exist
     error NullTransaction();
+
+    // Triggered when a user is called to enable but it is already enabled
+    error AlreadyEnabledUser();
+
+    // Triggered when a user is called to disable but it is already disable
+    error AlreadyDisabledUser();
 }
