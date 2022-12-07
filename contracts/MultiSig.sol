@@ -52,7 +52,7 @@ contract MultiSig is
 
     // Holds the Vault Object
     // Vault information can be viewed by anyone
-    Vault[] private _vaults;
+    mapping(uint256 => Vault) _vaults;
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ M O D I F I E R S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -163,7 +163,7 @@ contract MultiSig is
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ CREATION - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    /// @dev Creates a Vault with multiple users only
+    /// @dev Creates a Vault
     /// @param _userAddresses All the addresses you wish to add as users
     function createVault(
         address[] calldata _userAddresses
@@ -183,45 +183,6 @@ contract MultiSig is
         _vaultId[msg.sender].push(_numOfVaults);
 
         // Votes will start with one since there is only one owner
-        _v.votesReq = 1;
-
-        // Vault will be active
-        _v.status = Status.ACTIVE;
-    }
-
-    /// @dev Creates a Vault with multiple users and multiple owners
-    /// @param _userAddresses All the user addresses you wish to add
-    /// @param _ownerAddresses All the owner addresses you wish to add
-    function createVault(
-        address[] calldata _userAddresses,
-        address[] calldata _ownerAddresses
-    )
-        external
-        addressArrayCheck(_userAddresses)
-        addressArrayCheck(_ownerAddresses)
-    {
-        // Create empty Vault Object
-        Vault storage _v = _vaults[++_numOfVaults];
-
-        // Add all the user people into the object
-        for (uint256 i; i < _userAddresses.length; i++) {
-            _v.users[i] = (User(_userAddresses[i], Position.USER));
-            _v.userCount++;
-            _vaultId[_userAddresses[i]].push(_numOfVaults);
-        }
-
-        // Add all the admin people into the object
-        for (uint256 i; i < _ownerAddresses.length; i++) {
-            _v.users[i] = (User(_ownerAddresses[i], Position.OWNER));
-            _v.userCount++;
-            _vaultId[_ownerAddresses[i]].push(_numOfVaults);
-        }
-
-        // Add yourself as admin
-        _v.users[_v.userCount] = (User(msg.sender, Position.OWNER));
-        _vaultId[msg.sender].push(_numOfVaults);
-
-        // Votes will start with one
         _v.votesReq = 1;
 
         // Vault will be active
@@ -629,7 +590,7 @@ contract MultiSig is
         Vault storage _v = _vaults[vaultId];
 
         // Get all the active users
-        User[] memory _users;
+        User[] memory _users = new User[](_v.userCount);
         for (uint256 i; i < _v.userCount; i++) {
             if (_v.users[i].position != Position.INACTIVE)
                 _users[i] = _v.users[i];
