@@ -6,6 +6,8 @@ import "./hyperverse/IHyperverseModule.sol";
 import "./hyperverse/Initializable.sol";
 import "./interface/IMultiSig.sol";
 import "./helpers/ReentrancyGuard.sol";
+import "./utils/Strings.sol";
+import "./utils/Address.sol";
 
 // TODO : Gas optimizations - Use mload instead of sload (Load variables into memory than storage)
 // TODO : Gas optimizations - Use Remix Gas Optimizer
@@ -23,10 +25,13 @@ import "./helpers/ReentrancyGuard.sol";
 /// @dev This is a contract to handle Multi-Sig Vaults.
 contract MultiSig is
     IMultiSig,
+    ReentrancyGuard,
     IHyperverseModule,
-    Initializable,
-    ReentrancyGuard
+    Initializable
 {
+    using Strings for uint256;
+    using Address for address;
+
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T A T E @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     // Account used to deploy contract
@@ -101,9 +106,11 @@ contract MultiSig is
         address _caller = msg.sender;
         Vault storage _v = _vaults[_vaultId[_caller][index]];
         bool _isOwner;
-        for (uint256 i; i < _v.userCount ; i++) {
+        for (uint256 i; i < _v.userCount; i++) {
             User memory _finder = _v.users[i];
-            if (_finder.person == _caller && _finder.position == Position.OWNER) {
+            if (
+                _finder.person == _caller && _finder.position == Position.OWNER
+            ) {
                 _isOwner = true;
                 break;
             }
@@ -113,15 +120,16 @@ contract MultiSig is
     }
 
     // Check if the caller is an active member (Owner or User)
-        /// @param index Your Vault Position ID
-    modifier isActiveMember(uint256 index){
+    /// @param index Your Vault Position ID
+    modifier isActiveMember(uint256 index) {
         // Get Vault
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
         // Loop over to get the User
-        for(uint256 i ; i < _v.userCount ; i++) {
-            if(_v.users[i].person == msg.sender){
-                if(_v.users[i].position == Position.INACTIVE) revert Unauthorized();
+        for (uint256 i; i < _v.userCount; i++) {
+            if (_v.users[i].person == msg.sender) {
+                if (_v.users[i].position == Position.INACTIVE)
+                    revert Unauthorized();
 
                 break;
             }
@@ -221,13 +229,13 @@ contract MultiSig is
     }
 
     /// @dev Create a Transaction
+    /// @param index Your Vault Position ID
     /// @param to The Address to transfer
     /// @param value The amount in Wei
-    /// @param index Your Vault Position ID
     function createTransaction(
+        uint256 index,
         address to,
-        uint256 value,
-        uint256 index
+        uint256 value
     ) external hasVault addressCheck(msg.sender, to) {
         // Get Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
@@ -241,14 +249,14 @@ contract MultiSig is
     }
 
     /// @dev Create a Transaction with Data
+    /// @param index Your Vault Position ID
     /// @param to The Address to transfer
     /// @param value The amount in Wei
-    /// @param index Your Vault Position ID
     /// @param data Data to be passed in the transaction
     function createTransaction(
+        uint256 index,
         address to,
         uint256 value,
-        uint256 index,
         bytes calldata data
     ) external hasVault addressCheck(msg.sender, to) {
         // Get Vault Object
@@ -265,13 +273,12 @@ contract MultiSig is
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ADD - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-
     /// @dev Owners are able to add users if the user already doesn't exist
-    /// @param _userAddresses The userrs you want to add into your vault
     /// @param index Your Vault Position ID
+    /// @param _userAddresses The userrs you want to add into your vault
     function addUsers(
-        address[] calldata _userAddresses,
-        uint256 index
+        uint256 index,
+        address[] calldata _userAddresses
     ) external hasVault isOwnerVault(index) addressArrayCheck(_userAddresses) {
         // Get the Vault
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
@@ -290,11 +297,11 @@ contract MultiSig is
 
     /// @dev Make an added User as Owner
     /// @notice You need to add a user using `addUsers` first
-    /// @param _ownerAddress The Address you want to make an owner
     /// @param index Your Vault Position ID
+    /// @param _ownerAddress The Address you want to make an owner
     function makeOwner(
-        address _ownerAddress,
-        uint256 index
+        uint256 index,
+        address _ownerAddress
     )
         external
         hasVault
@@ -388,7 +395,10 @@ contract MultiSig is
         uint256 transactionId
     ) external nonReentrant hasVault {
         // The Transaction must exist
-        if(transactionId < _vaults[_vaultId[msg.sender][index]].transactionCount) revert NullTransaction();
+        if (
+            transactionId <
+            _vaults[_vaultId[msg.sender][index]].transactionCount
+        ) revert NullTransaction();
 
         // Get the Transaction Object
         TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
@@ -401,19 +411,18 @@ contract MultiSig is
         // The Transaction must have enough positive votes
         uint256 _reqVotes = _vaults[_vaultId[msg.sender][index]].votesReq;
         uint256 yesVotes;
-        for (uint256 i; i < _tx.voteCount; i++){
-            if(_tx.votes[i].vote == uint8(1)) yesVotes++;
+        for (uint256 i; i < _tx.voteCount; i++) {
+            if (_tx.votes[i].vote == uint8(1)) yesVotes++;
         }
         require(yesVotes >= _reqVotes, "Not enough Votes");
 
         // All Good, proceed with the transaction
         _tx.done = true;
-        (bool accept, ) = _tx.to.call{value:_tx.amount}(_tx.data);
+        (bool accept, ) = _tx.to.call{value: _tx.amount}(_tx.data);
         require(accept, "Transaction Failed");
 
         // Emit Event
         emit SuccessTransaction(_tx.to, transactionId, index, _tx.amount);
-
     }
 
     /// @dev Perform a Vote, Owners only
@@ -464,16 +473,21 @@ contract MultiSig is
 
     /// @dev Enable a User
     /// @notice Must be already Inactive
-    function enableUser(uint256 index, address _userAddress) external hasVault isOwnerVault(index) {
+    function enableUser(
+        uint256 index,
+        address _userAddress
+    ) external hasVault isOwnerVault(index) {
         // Get Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
         // Get the User out
-        for(uint256 i ; i < _v.userCount ; i++){
-            if(_v.users[i].person == _userAddress) {
-
+        for (uint256 i; i < _v.userCount; i++) {
+            if (_v.users[i].person == _userAddress) {
                 // Revert if already a user/Not inactive
-                if(_v.users[i].position == Position.USER || _v.users[i].position == Position.OWNER) revert AlreadyEnabledUser();
+                if (
+                    _v.users[i].position == Position.USER ||
+                    _v.users[i].position == Position.OWNER
+                ) revert AlreadyEnabledUser();
 
                 _v.users[i].position = Position.USER;
                 return;
@@ -487,11 +501,11 @@ contract MultiSig is
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ DISABLE - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     /// @dev Disables the User without removing the user
-    /// @param _userAddress The User address you want to disable
     /// @param index Your Vault Position ID
+    /// @param _userAddress The User address you want to disable
     function disableUser(
-        address _userAddress,
-        uint256 index
+        uint256 index,
+        address _userAddress
     )
         external
         hasVault
@@ -507,9 +521,9 @@ contract MultiSig is
         // Loop until the right person is found, if found, change position
         for (uint256 i; i < _v.userCount; i++) {
             if (_userAddress == _v.users[i].person) {
-
                 // User must already be active
-                if(_v.users[i].position == Position.INACTIVE) revert AlreadyDisabledUser();
+                if (_v.users[i].position == Position.INACTIVE)
+                    revert AlreadyDisabledUser();
 
                 _v.users[i].position = Position.INACTIVE;
                 return;
@@ -535,8 +549,8 @@ contract MultiSig is
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ GETTER - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // /// @dev Get All the Vault IDs the caller has joined
-    // /// @return All the Vault IDs the user has joined - `uint256[]`
+    /// @dev Get All the Vault IDs the caller has joined
+    /// @return All the Vault IDs the user has joined - `uint256[]`
     function getAllVaultCount()
         external
         view
@@ -556,15 +570,31 @@ contract MultiSig is
     /// @return _done Whether the transaction is executed (true - executed)
     /// @return _posVoteCount Number of people who votes yes
     /// @return _status The Status of the Vault (Active, or Inactive)
-    function getTransaction(uint256 index, uint256 transactionId) external view hasVault returns(address _to, uint256 _amount, bytes memory _data, bool _done, uint256 _posVoteCount, Status _status){
+    function getTransaction(
+        uint256 index,
+        uint256 transactionId
+    )
+        external
+        view
+        hasVault
+        returns (
+            address _to,
+            uint256 _amount,
+            bytes memory _data,
+            bool _done,
+            uint256 _posVoteCount,
+            Status _status
+        )
+    {
         // Get the Transaction Object
-        TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[transactionId];
+        TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
+            transactionId
+        ];
 
         // Get the Positive Vote Count
         uint256 _posVotes;
-        for(uint256 i ; i < _tx.voteCount; i ++){
-            if(_tx.votes[i].vote == uint8(1))
-                _posVotes++;
+        for (uint256 i; i < _tx.voteCount; i++) {
+            if (_tx.votes[i].vote == uint8(1)) _posVotes++;
         }
 
         // Return the values
@@ -583,14 +613,26 @@ contract MultiSig is
     /// @return _reqVotes The Required Votes to pass a transaction
     /// @return _transCount The Total Transaction count that exists in this project
     /// @return _status The Status of the Vault
-    function getVault(uint256 vaultId) external view returns(User[] memory _allusers, uint256 _reqVotes, uint256 _transCount, Status _status){
+    function getVault(
+        uint256 vaultId
+    )
+        external
+        view
+        returns (
+            User[] memory _allusers,
+            uint256 _reqVotes,
+            uint256 _transCount,
+            Status _status
+        )
+    {
         // Get Vault
         Vault storage _v = _vaults[vaultId];
 
         // Get all the active users
         User[] memory _users;
-        for(uint256 i ; i < _v.userCount ; i++){
-            if(_v.users[i].position != Position.INACTIVE) _users[i] = _v.users[i];
+        for (uint256 i; i < _v.userCount; i++) {
+            if (_v.users[i].position != Position.INACTIVE)
+                _users[i] = _v.users[i];
         }
 
         // Return all variables
@@ -600,4 +642,7 @@ contract MultiSig is
         _status = _v.status;
     }
 
+    function getNoOfVaults() external view returns (uint256) {
+        return _numOfVaults;
+    }
 }
