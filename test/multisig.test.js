@@ -89,40 +89,19 @@ describe("MultiSig Contract should succeed every test", function () {
   describe("All owner functionality should work", function () {
     // Deploying all and creating a vault before every function
     beforeEach(async () => {
-      // Get all the test accounts
-      [owner, alice, bob, cara, john] = await ethers.getSigners();
-
-      // Deploy Main Contract
-      MultiSig = await ethers.getContractFactory("MultiSig");
-      multisig = await MultiSig.deploy(owner.address);
-      await multisig.deployed();
-
-      // Deploy Contract Factory
-      MultiSigFactory = await ethers.getContractFactory("MultiSigFactory");
-      multisigfactory = await MultiSigFactory.deploy(
-        multisig.address,
-        owner.address
-      );
-      await multisigfactory.deployed();
-
-      // Deploy one test contract Alice from the main deployed contracts
-      await multisigfactory.connect(alice).createInstance(alice.address);
-      aliceProxyContract = await MultiSig.attach(
-        await multisigfactory.getProxy(alice.address)
-      );
-
-      await aliceProxyContract.createVault([bob.address, cara.address]);
+      await aliceProxyContract
+        .connect(owner)
+        .createVault([cara.address, bob.address]);
     });
 
     it("Create Vault should work", async () => {
-      expect(await aliceProxyContract.createVault([bob.address, cara.address]))
-        .to.not.reverted;
+      expect(await aliceProxyContract.createVault([john.address])).to.not
+        .reverted;
       expect(await aliceProxyContract.getNoOfVaults()).to.equal(2);
       expect(await aliceProxyContract.getAllVaultCount()).to.deep.equal([1, 2]);
     });
 
     it("Create Transaction should work", async () => {
-      await aliceProxyContract.connect(alice);
       await expect(
         aliceProxyContract.createTransaction(1, cara.address, 2, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
@@ -130,7 +109,7 @@ describe("MultiSig Contract should succeed every test", function () {
         .to.not.be.reverted;
 
       await expect(
-        aliceProxyContract.getTransaction(1, 33)
+        aliceProxyContract.getTransaction(3, 33)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
       await expect(
         aliceProxyContract.getTransaction(0, 33)
@@ -147,6 +126,72 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_done).to.be.false;
       expect(_posVoteCount).to.equal(0);
       expect(_status).to.equal(0);
+    });
+
+    it("Add User should work", async () => {
+      await expect(
+        aliceProxyContract.connect(john).getAllVaultCount()
+      ).to.be.revertedWithCustomError(aliceProxyContract, "AddressNotInAVault");
+      await expect(
+        aliceProxyContract.connect(bob).addUsers(1, [])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      await expect(aliceProxyContract.connect(owner).addUsers(0, [])).to.not.be
+        .reverted;
+      await expect(
+        aliceProxyContract.connect(owner).addUsers(0, [john.address])
+      ).to.not.be.reverted;
+      expect(
+        await aliceProxyContract.connect(john).getAllVaultCount()
+      ).to.deep.equal([1]);
+    });
+
+    it("Should make a member as owner", async () => {
+      {
+        // Since I know the 0 index is Cara
+        const { _allusers } = await aliceProxyContract.getVault(1);
+        expect(_allusers[0].person).to.equal(cara.address);
+        expect(_allusers[0].position).to.equal(1);
+      }
+
+      await expect(
+        aliceProxyContract.connect(bob).makeOwner(2, cara.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      await expect(
+        aliceProxyContract.connect(bob).makeOwner(0, cara.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+
+      await aliceProxyContract.makeOwner(0, cara.address);
+
+      // Since I know the 0 index is Cara
+      const { _allusers } = await aliceProxyContract.getVault(1);
+      expect(_allusers[0].person).to.equal(cara.address);
+      expect(_allusers[0].position).to.equal(0);
+    });
+
+    it("Should set votes count", async () => {
+      {
+        // Since I know the 0 index is Cara
+        const { _reqVotes } = await aliceProxyContract.getVault(1);
+        expect(_reqVotes).to.equal(1);
+      }
+
+      await expect(
+        aliceProxyContract.connect(bob).setVotesCount(2, 2)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      await expect(
+        aliceProxyContract.connect(bob).setVotesCount(0, 2)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+      await expect(
+        aliceProxyContract.setVotesCount(0, 3)
+      ).to.to.revertedWithCustomError(aliceProxyContract, "VoteCountTooHigh");
+
+      expect(await aliceProxyContract.makeOwner(0, cara.address)).to.not.be
+        .reverted;
+
+      expect(await aliceProxyContract.setVotesCount(0, 2)).to.not.be.reverted;
+
+      const { _reqVotes } = await aliceProxyContract.getVault(1);
+      expect(_reqVotes).to.equal(2);
     });
   });
 });

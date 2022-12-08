@@ -186,7 +186,7 @@ contract MultiSig is
         }
 
         // Add yourself as admin
-        _v.users[_v.userCount] = (User(msg.sender, Position.OWNER));
+        _v.users[_v.userCount++] = (User(msg.sender, Position.OWNER));
         _vaultId[msg.sender].push(_numOfVaults);
 
         // Votes will start with one since there is only one owner
@@ -227,7 +227,7 @@ contract MultiSig is
     function addUsers(
         uint256 index,
         address[] calldata _userAddresses
-    ) external hasVault isOwnerVault(index) addressArrayCheck(_userAddresses) {
+    ) external hasVault indexInBounds(index) isOwnerVault(index) addressArrayCheck(_userAddresses) {
         // Get the Vault
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
@@ -238,6 +238,7 @@ contract MultiSig is
         // TODO : Check whether the `_v.userCount++` works
         for (uint256 i; i < _userAddresses.length; i++) {
             _v.users[_v.userCount++] = (User(_userAddresses[i], Position.USER));
+            _vaultId[_userAddresses[i]].push(_numOfVaults);
         }
     }
 
@@ -253,6 +254,7 @@ contract MultiSig is
     )
         external
         hasVault
+        indexInBounds(index)
         isOwnerVault(index)
         addressCheck(msg.sender, _ownerAddress)
     {
@@ -287,7 +289,7 @@ contract MultiSig is
     function setVotesCount(
         uint256 index,
         uint256 voteCount
-    ) external hasVault isOwnerVault(index) {
+    ) external hasVault indexInBounds(index) isOwnerVault(index) {
         // Get the Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
@@ -295,13 +297,13 @@ contract MultiSig is
         if (_v.status == Status.INACTIVE) revert InActiveVault();
 
         // Votes cannot be higher than admin count
-        User[] memory _u;
+        uint256 _votes;
 
         for (uint256 i; i < _v.userCount; i++) {
-            if (_v.users[i].position == Position.OWNER) _u[i] = _v.users[i];
+            if (_v.users[i].position == Position.OWNER) _votes++;
         }
 
-        if (voteCount > _u.length) revert VoteCountTooHigh(_u.length);
+        if (voteCount > _votes) revert VoteCountTooHigh(_votes);
 
         // Set Votes
         _v.votesReq = voteCount;
@@ -594,6 +596,8 @@ contract MultiSig is
         _status = _v.status;
     }
 
+    /// @dev Get the Total Number of Vaults present
+    /// @return The total number of vaults - `uint256`
     function getNoOfVaults() external view returns (uint256) {
         return _numOfVaults;
     }
