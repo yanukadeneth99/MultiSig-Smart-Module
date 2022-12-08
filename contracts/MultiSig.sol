@@ -19,6 +19,7 @@ import "./utils/Address.sol";
 // TODO : Add ERC-165 function (supports interface)
 // TODO : Check non-reentrancy
 // TODO : Interactions can only happen if the vault is enabled
+// TODO : Add event to `receiveMoney`
 
 /// @title MultiSig Main Contract
 /// @author Yashura
@@ -101,8 +102,9 @@ contract MultiSig is
 
     // Check if the Vault index exists
     modifier indexInBounds(uint256 index) {
-        if(index > _vaultId[msg.sender].length - 1) revert InvalidVault();
-
+        uint256 _id = _vaultId[msg.sender].length;
+        if(_id > 0) _id--;
+        if(index > _id) revert InvalidVault();
         _;
     }
 
@@ -235,7 +237,6 @@ contract MultiSig is
         if (_v.status == Status.INACTIVE) revert InActiveVault();
 
         // Add in the users
-        // TODO : Check whether the `_v.userCount++` works
         for (uint256 i; i < _userAddresses.length; i++) {
             _v.users[_v.userCount++] = (User(_userAddresses[i], Position.USER));
             _vaultId[_userAddresses[i]].push(_numOfVaults);
@@ -320,9 +321,19 @@ contract MultiSig is
         uint256 txIndex,
         address to,
         uint256 amount
-    ) external hasVault {
+    ) external hasVault indexInBounds(index) addressCheck(msg.sender, to) {
+        // Get Vault Object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        uint256 _transCount = _v.transactionCount;
+
+        if(_transCount > 0) _transCount--;
+
+        // If the transaction ID requested is higher than the current count, then revert
+        if(txIndex > _transCount) revert InvalidTransactionID();
+
         // Get the Transaction Object
-        TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
+        TxObj storage _tx = _v.transactions[
             txIndex
         ];
 
@@ -343,15 +354,19 @@ contract MultiSig is
     function performTransaction(
         uint256 index,
         uint256 transactionId
-    ) external nonReentrant hasVault {
-        // The Transaction must exist
-        if (
-            transactionId <
-            _vaults[_vaultId[msg.sender][index]].transactionCount
-        ) revert NullTransaction();
+    ) external nonReentrant indexInBounds(index) hasVault {
+
+        // Get Storage object
+        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // If the transaction ID requested is higher than the current count, then revert
+        uint256 _transCount = _v.transactionCount;
+        if(_transCount > 0) _transCount--;
+        if(transactionId > _transCount) revert InvalidTransactionID();
+
 
         // Get the Transaction Object
-        TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
+        TxObj storage _tx = _v.transactions[
             transactionId
         ];
 
@@ -359,7 +374,7 @@ contract MultiSig is
         require(!_tx.done, "Transaction already executed");
 
         // The Transaction must have enough positive votes
-        uint256 _reqVotes = _vaults[_vaultId[msg.sender][index]].votesReq;
+        uint256 _reqVotes =_v.votesReq;
         uint256 yesVotes;
         for (uint256 i; i < _tx.voteCount; i++) {
             if (_tx.votes[i].vote == uint8(1)) yesVotes++;
@@ -370,6 +385,8 @@ contract MultiSig is
         _tx.done = true;
         (bool accept, ) = _tx.to.call{value: _tx.amount}(_tx.data);
         require(accept, "Transaction Failed");
+
+        _tx.done = true;
 
         // Emit Event
         emit SuccessTransaction(_tx.to, transactionId, index, _tx.amount);
@@ -601,4 +618,9 @@ contract MultiSig is
     function getNoOfVaults() external view returns (uint256) {
         return _numOfVaults;
     }
+
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ACCEPT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+    /// @dev Function to receive Ether
+    function receiveMoney() external payable {}
 }

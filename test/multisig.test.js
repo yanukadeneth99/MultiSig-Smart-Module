@@ -9,6 +9,8 @@ const { BigNumber } = require("ethers");
 // TODO : Create a vault, create a tx object and do the tx with positive votes
 // TODO : Create a vault, create a tx object and fail the tx with a negative vote
 // TODO : Stress test every function with 'it's
+// TODO : Create `ethers.constants.AddressZero` tests
+// TODO : Add better comments
 
 // Main Test Function
 describe("MultiSig Contract should succeed every test", function () {
@@ -94,14 +96,14 @@ describe("MultiSig Contract should succeed every test", function () {
         .createVault([cara.address, bob.address]);
     });
 
-    it("Create Vault should work", async () => {
+    it("Should create a vault", async () => {
       expect(await aliceProxyContract.createVault([john.address])).to.not
         .reverted;
       expect(await aliceProxyContract.getNoOfVaults()).to.equal(2);
       expect(await aliceProxyContract.getAllVaultCount()).to.deep.equal([1, 2]);
     });
 
-    it("Create Transaction should work", async () => {
+    it("Should create a transaction", async () => {
       await expect(
         aliceProxyContract.createTransaction(1, cara.address, 2, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
@@ -128,7 +130,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_status).to.equal(0);
     });
 
-    it("Add User should work", async () => {
+    it("Should add a user", async () => {
       await expect(
         aliceProxyContract.connect(john).getAllVaultCount()
       ).to.be.revertedWithCustomError(aliceProxyContract, "AddressNotInAVault");
@@ -192,6 +194,83 @@ describe("MultiSig Contract should succeed every test", function () {
 
       const { _reqVotes } = await aliceProxyContract.getVault(1);
       expect(_reqVotes).to.equal(2);
+    });
+
+    it("Should create a transaction and edit it", async () => {
+      await expect(aliceProxyContract.createTransaction(0, cara.address, 2, []))
+        .to.not.be.reverted;
+      {
+        const { _to, _amount } = await aliceProxyContract.getTransaction(0, 0);
+
+        expect(_to).to.equal(cara.address);
+        expect(_amount).to.equal(2);
+      }
+      await expect(
+        aliceProxyContract.editTransaction(2, 4, john.address, 5)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      await expect(
+        aliceProxyContract.editTransaction(0, 4, john.address, 5)
+      ).to.be.revertedWithCustomError(
+        aliceProxyContract,
+        "InvalidTransactionID"
+      );
+      expect(await aliceProxyContract.editTransaction(0, 0, john.address, 5)).to
+        .not.be.reverted;
+
+      const { _to, _amount } = await aliceProxyContract.getTransaction(0, 0);
+
+      expect(_to).to.equal(john.address);
+      expect(_amount).to.equal(5);
+    });
+
+    it("Should be able to perform a transaction", async () => {
+      const _caraBalance = await cara.getBalance();
+      await expect(
+        aliceProxyContract.createTransaction(
+          0,
+          cara.address,
+          ethers.utils.parseEther("2"),
+          []
+        )
+      ).to.not.be.reverted;
+      await aliceProxyContract.receiveMoney({
+        value: ethers.utils.parseEther("5"),
+      });
+      expect(
+        await aliceProxyContract.provider.getBalance(aliceProxyContract.address)
+      ).to.equal(ethers.utils.parseEther("5"));
+
+      await expect(
+        aliceProxyContract.performTransaction(5, 12)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      await expect(
+        aliceProxyContract.performTransaction(0, 12)
+      ).to.be.revertedWithCustomError(
+        aliceProxyContract,
+        "InvalidTransactionID"
+      );
+
+      await expect(
+        aliceProxyContract.performTransaction(0, 0)
+      ).to.be.revertedWith("Not enough Votes");
+
+      expect(await aliceProxyContract.castVote(0, 0, 1)).to.not.be.reverted;
+
+      const { _posVoteCount, _amount } =
+        await aliceProxyContract.getTransaction(0, 0);
+      expect(_posVoteCount).to.equal(1);
+      expect(_amount).to.equal(ethers.utils.parseEther("2"));
+
+      await expect(aliceProxyContract.performTransaction(0, 0)).to.not.be
+        .reverted;
+
+      expect(
+        await aliceProxyContract.provider.getBalance(aliceProxyContract.address)
+      ).to.equal(ethers.utils.parseEther("3"));
+
+      expect(await cara.provider.getBalance(cara.address)).to.equal(
+        ethers.utils.parseEther("2").add(_caraBalance)
+      );
     });
   });
 });
