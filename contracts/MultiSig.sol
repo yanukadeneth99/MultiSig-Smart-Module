@@ -99,6 +99,13 @@ contract MultiSig is
         _;
     }
 
+    // Check if the Vault index exists
+    modifier indexInBounds(uint256 index) {
+        if(index > _vaultId[msg.sender].length - 1) revert InvalidVault();
+
+        _;
+    }
+
     // Check if the caller is the owner of the vault
     /// @param index Your Vault Position ID
     modifier isOwnerVault(uint256 index) {
@@ -189,26 +196,6 @@ contract MultiSig is
         _v.status = Status.ACTIVE;
     }
 
-    /// @dev Create a Transaction
-    /// @param index Your Vault Position ID
-    /// @param to The Address to transfer
-    /// @param value The amount in Wei
-    function createTransaction(
-        uint256 index,
-        address to,
-        uint256 value
-    ) external hasVault addressCheck(msg.sender, to) {
-        // Get Vault Object
-        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
-
-        // Get the Transaction Object
-        TxObj storage _tx = _v.transactions[_v.transactionCount];
-
-        // Set the data
-        _tx.to = to;
-        _tx.amount = value;
-    }
-
     /// @dev Create a Transaction with Data
     /// @param index Your Vault Position ID
     /// @param to The Address to transfer
@@ -219,7 +206,7 @@ contract MultiSig is
         address to,
         uint256 value,
         bytes calldata data
-    ) external hasVault addressCheck(msg.sender, to) {
+    ) external hasVault indexInBounds(index) addressCheck(msg.sender, to) {
         // Get Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
@@ -538,6 +525,7 @@ contract MultiSig is
         external
         view
         hasVault
+        indexInBounds(index)
         returns (
             address _to,
             uint256 _amount,
@@ -546,11 +534,14 @@ contract MultiSig is
             uint256 _posVoteCount,
             Status _status
         )
-    {
+    {        
         // Get the Transaction Object
         TxObj storage _tx = _vaults[_vaultId[msg.sender][index]].transactions[
             transactionId
         ];
+
+        // Revert if the transaction does not exist
+        if(_tx.to == address(0)) revert InvalidTransactionID();
 
         // Get the Positive Vote Count
         uint256 _posVotes;

@@ -11,7 +11,12 @@ interface IMultiSig {
     event Deposit(address indexed sender, uint256 amount, uint256 balance);
 
     // Emitted when a transaction is done
-    event SuccessTransaction(address indexed receiver, uint256 transactionId, uint256 indexed vaultId, uint256 amount);
+    event SuccessTransaction(
+        address indexed receiver,
+        uint256 transactionId,
+        uint256 indexed vaultId,
+        uint256 amount
+    );
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -140,4 +145,7 @@ interface IMultiSig {
 
     // Triggered when a user is called to disable but it is already disable
     error AlreadyDisabledUser();
+
+    // Triggered when an invalid transaction ID is called
+    error InvalidTransactionID();
 }
