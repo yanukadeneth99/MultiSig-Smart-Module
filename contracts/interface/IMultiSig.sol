@@ -118,6 +118,9 @@ interface IMultiSig {
     // Triggered when you want to do an interaction to yourself that is not allowed
     error CannotRemoveSelf();
 
+    // Triggered when you want to add yourself into a vault which you created
+    error CannotAddSelf();
+
     // Triggered when you set Votes neccessary to a number higher than the owner count
     /// @param owners The number of owners that exist in the vault
     error VoteCountTooHigh(uint256 owners);

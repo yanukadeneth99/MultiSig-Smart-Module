@@ -148,6 +148,12 @@ contract MultiSig is
         _;
     }
 
+    // Check whether address passed in a zero address
+    modifier notZeroAddress(address _in) {
+        if(_in == address(0)) revert ZeroAddress();
+        _;
+    }
+
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ C O N S T R U C T O R @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     /// @dev Make sure to update the information in the metadata before you deploy
@@ -184,6 +190,7 @@ contract MultiSig is
 
         // Add all the people into the object
         for (uint256 i; i < _userAddresses.length; i++) {
+            if(_userAddresses[i] == msg.sender) revert CannotAddSelf();
             _v.users[i] = (User(_userAddresses[i], Position.USER));
             _v.userCount++;
             _vaultId[_userAddresses[i]].push(_numOfVaults);
@@ -285,7 +292,7 @@ contract MultiSig is
         hasVault
         indexInBounds(index)
         isOwnerVault(index)
-        addressCheck(msg.sender, _ownerAddress)
+        notZeroAddress(_ownerAddress)
     {
         // Get Vault
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
@@ -351,7 +358,7 @@ contract MultiSig is
         address to,
         uint256 amount,
         bytes calldata data
-    ) external hasVault indexInBounds(index) addressCheck(msg.sender, to) {
+    ) external hasVault indexInBounds(index) notZeroAddress(to) {
         // Get Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 
@@ -706,7 +713,7 @@ contract MultiSig is
     /// @dev Pass money into a vault confirming a owner
     /// @param vaultId The Vault ID
     /// @param ownerAddress A Owner address to confirm the vault
-    function transferMoneyWithProof(uint256 vaultId, address ownerAddress) external payable addressCheck(msg.sender,ownerAddress) {
+    function transferMoneyWithProof(uint256 vaultId, address ownerAddress) external payable notZeroAddress(ownerAddress) {
 
         // Check Ethers passed
         if(msg.value == 0 ether) revert NoEtherPassed();

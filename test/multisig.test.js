@@ -88,7 +88,7 @@ describe("MultiSig Contract should succeed every test", function () {
     expect(_reqVotes).to.equal(1);
   });
 
-  describe("All contract functionality should work", function () {
+  describe("Main Contract functionality checks", function () {
     // Deploying all and creating a vault before every function
     beforeEach(async () => {
       await aliceProxyContract
@@ -411,7 +411,7 @@ describe("MultiSig Contract should succeed every test", function () {
       }
     });
 
-    it("Disabled users should not be able to interact with the Vault", async () => {
+    it("Should not be able to interaction with the vault once user is disabled", async () => {
       // Confirm Cara isnt an owner
       {
         const { _allusers } = await aliceProxyContract.getVault(1);
@@ -460,11 +460,6 @@ describe("MultiSig Contract should succeed every test", function () {
         aliceProxyContract
           .connect(cara)
           .editTransaction(0, 0, cara.address, 20, [])
-      ).to.be.revertedWithCustomError(aliceProxyContract, "SameAddress");
-      await expect(
-        aliceProxyContract
-          .connect(cara)
-          .editTransaction(0, 0, bob.address, 50, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "Unauthorized");
 
       // Should not be able to cast votes
@@ -550,7 +545,7 @@ describe("MultiSig Contract should succeed every test", function () {
     });
   });
 
-  describe("All the Getter Functions works", function () {
+  describe("Checking Getter Functions", function () {
     // Deploying all and creating a vault before every function
     beforeEach(async () => {
       await aliceProxyContract
@@ -559,8 +554,115 @@ describe("MultiSig Contract should succeed every test", function () {
     });
 
     it("Getting all vault count should work", async () => {
+      // Initial Confirm
       expect(await aliceProxyContract.getAllVaultCount()).to.deep.equal([1]);
+
+      // Creating Vaults
       await aliceProxyContract.createVault([john.address]);
+      await aliceProxyContract.createVault([bob.address]);
+
+      // Cannot add yourself
+      await expect(
+        aliceProxyContract.createVault([owner.address])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "CannotAddSelf");
+
+      // Confirmation
+      expect(await aliceProxyContract.getAllVaultCount()).to.deep.equal([
+        1, 2, 3,
+      ]);
+
+      // Create using another person
+      expect(
+        await aliceProxyContract.connect(cara).getAllVaultCount()
+      ).to.deep.equal([1]);
+
+      // Create two more vaults with cara
+      await aliceProxyContract.connect(cara).createVault([john.address]);
+      await aliceProxyContract.connect(cara).createVault([bob.address]);
+
+      // Confirmation for Cara
+      expect(
+        await aliceProxyContract.connect(cara).getAllVaultCount()
+      ).to.deep.equal([1, 4, 5]);
+    });
+
+    // Get Transaction and Get Vault works as it's used for the above tests
+
+    it("Getting No of Total Vaults should work", async () => {
+      // Initial Confirm
+      expect(await aliceProxyContract.getNoOfVaults()).to.equal(1);
+
+      // Creating Vaults
+      await aliceProxyContract.createVault([john.address]);
+      await aliceProxyContract.createVault([bob.address]);
+
+      // Confirm
+      expect(await aliceProxyContract.getNoOfVaults()).to.equal(3);
+    });
+  });
+
+  describe("Transferring Money into Vaults", function () {
+    // Deploying all and creating a vault before every function
+    beforeEach(async () => {
+      await aliceProxyContract
+        .connect(owner)
+        .createVault([cara.address, bob.address]);
+    });
+
+    it("Should be able to transfer money into vaults without confirmation address", async () => {
+      // Initial Confirm
+      {
+        const { _money } = await aliceProxyContract.getVault(1);
+        expect(_money).to.equal(0);
+      }
+
+      // Transfer some money to the Vault 1
+      await aliceProxyContract.transferMoney(1, {
+        value: ethers.utils.parseEther("22"),
+      });
+
+      // Confirmation
+      const { _money } = await aliceProxyContract.getVault(1);
+      expect(_money).to.equal(ethers.utils.parseEther("22"));
+
+      // Transfer to vault that does not exist
+      await expect(
+        aliceProxyContract.transferMoney(22, {
+          value: ethers.utils.parseEther("50"),
+        })
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      {
+        const { _money } = await aliceProxyContract.getVault(1);
+        expect(_money).to.not.equal(ethers.utils.parseEther("72"));
+      }
+    });
+
+    it("Should be able to transfer money into vaults with confirmation address", async () => {
+      // Initial Confirm
+      {
+        const { _money } = await aliceProxyContract.getVault(1);
+        expect(_money).to.equal(0);
+      }
+
+      // Transfer some money to the Vault 1
+      await aliceProxyContract.transferMoneyWithProof(1, owner.address, {
+        value: ethers.utils.parseEther("50"),
+      });
+
+      // Confirmation
+      const { _money } = await aliceProxyContract.getVault(1);
+      expect(_money).to.equal(ethers.utils.parseEther("50"));
+
+      // Transfer to vault that does not have the owner address passed
+      await expect(
+        aliceProxyContract.transferMoneyWithProof(1, john.address, {
+          value: ethers.utils.parseEther("50"),
+        })
+      ).to.be.revertedWithCustomError(aliceProxyContract, "AddressNotInAVault");
+      {
+        const { _money } = await aliceProxyContract.getVault(1);
+        expect(_money).to.not.equal(ethers.utils.parseEther("100"));
+      }
     });
   });
 });
