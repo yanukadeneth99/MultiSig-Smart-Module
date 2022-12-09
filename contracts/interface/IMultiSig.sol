@@ -2,21 +2,53 @@
 pragma solidity ^0.8.0;
 
 // TODO : Fix the comments (Added mappings)
+// TODO : Set up Deposit event
+// TODO : Setup other events
 
 interface IMultiSig {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // TODO : Set this up
-    // Event Emitted when an amount is sent to the contract
-    event Deposit(address indexed sender, uint256 amount, uint256 balance);
+    // Emitted when a new vault is created
+    event VaultCreated(address indexed owner, uint256 vaultId, uint256 numOfUsers);
 
-    // Emitted when a transaction is done
-    event SuccessTransaction(
-        address indexed receiver,
-        uint256 transactionId,
-        uint256 indexed vaultId,
-        uint256 amount
-    );
+    // Emitted when creating a transaction
+    event TransactionCreated(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId);
+
+    // Emitted when new users are added into a vault
+    event NewUsersAdded(address indexed owner, uint256 indexed vaultId, uint256 numOfUsers);
+
+    // Emitted when you make a user an owner
+    event MadeOwner(address indexed owner, uint256 indexed vaultId, address newOwner);
+
+    // Emitted when you change the vote count of a vault
+    event ChangeVoteCount(address indexed owner, uint256 indexed vaultId, uint256 voteCount);
+
+    // Emitted when a transaction is edited
+    event TransactionEdited(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId);
+
+    // Emitted when a Transaction is completed
+    event TransactionComplete(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId, uint256 amount);
+
+    // Emitted when a owner casts a vote
+    event CastVote(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId, bool vote);
+
+    // Emitted when a vote is changed
+    event ChangeVote(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId, bool prevVote, bool newVote);
+
+    // Emitted when a vault is enabled
+    event EnableVault(address indexed owner, uint256 indexed vaultId);
+
+    // Emitted when a vault is disabled
+    event DisableVault(address indexed owner, uint256 indexed vaultId);
+
+    // Emitted when a user is enabled
+    event EnableUser(address indexed owner, uint256 indexed vaultId, address user);
+
+    // Emitted when a user is disabled
+    event DisableUser(address indexed owner, uint256 indexed vaultId, address user);
+
+    // Emitted when an amount is sent to the contract
+    event Deposit(address indexed sender, uint256 indexed vaultId, uint256 amount);
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 

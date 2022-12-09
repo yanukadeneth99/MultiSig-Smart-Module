@@ -571,10 +571,14 @@ describe("MultiSig Contract should succeed every test", function () {
           .editTransaction(0, 0, cara.address, 55, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
 
+      // Should not be able to transfer money
+      await expect(
+        aliceProxyContract.transferMoney(1, {
+          value: ethers.utils.parseEther("22"),
+        })
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
       // Should not be able to perform Transactions
-      await aliceProxyContract.transferMoney(1, {
-        value: ethers.utils.parseEther("22"),
-      });
       await expect(
         aliceProxyContract.performTransaction(0, 0)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
