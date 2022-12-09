@@ -258,6 +258,9 @@ contract MultiSig is
         isOwnerVault(index)
         addressArrayCheck(_userAddresses)
     {
+        // Atleast one user should be passed
+        require(_userAddresses.length > 0, "No address added");
+
         // Get the Vault
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
 

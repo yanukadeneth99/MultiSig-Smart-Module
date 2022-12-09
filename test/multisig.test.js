@@ -2,16 +2,6 @@ const { ethers } = require("hardhat");
 const { expect } = require("chai");
 const { BigNumber } = require("ethers");
 
-// TODO : Check whether you can perform alot of other functions when you just made the vault
-// TODO : Check whether other members can perform admin only functionality
-// TODO : Create a vault, add people, disable and re-enable people
-// TODO : Create a vault, make someone admin and change back to user
-// TODO : Create a vault, create a tx object and do the tx with positive votes
-// TODO : Create a vault, create a tx object and fail the tx with a negative vote
-// TODO : Stress test every function with 'it's
-// TODO : Create `ethers.constants.AddressZero` tests
-// TODO : Add better comments
-
 // Main Test Function
 describe("MultiSig Contract should succeed every test", function () {
   // Main Contract
@@ -61,12 +51,10 @@ describe("MultiSig Contract should succeed every test", function () {
     );
   });
 
-  // Master contract
   it("Should match the factory address and main contract", async function () {
     expect(await multisigfactory.masterContract()).to.equal(multisig.address);
   });
 
-  // Checking Vault by creating a vault and then confirming all values are updated
   it("Should be able to create a vault with two addresses", async function () {
     // Created once
     expect(await aliceProxyContract.createVault([bob.address, cara.address])).to
@@ -97,22 +85,30 @@ describe("MultiSig Contract should succeed every test", function () {
     });
 
     it("Should create a vault", async () => {
+      // Create Vaults
       expect(await aliceProxyContract.createVault([john.address])).to.not
         .reverted;
+
+      // Confirmations
       expect(await aliceProxyContract.getNoOfVaults()).to.equal(2);
       expect(await aliceProxyContract.getAllVaultCount()).to.deep.equal([1, 2]);
     });
 
     it("Should create a transaction", async () => {
+      // Transaction with wrong Vault index
       await expect(
         aliceProxyContract.createTransaction(1, cara.address, 2, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+
+      // Create Transaction
       await expect(aliceProxyContract.createTransaction(0, cara.address, 2, []))
         .to.not.be.reverted;
 
+      // Calling Transaction data with wrong Vault index
       await expect(
         aliceProxyContract.getTransaction(3, 33)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      // Calling Transaction data with wrong transaction index
       await expect(
         aliceProxyContract.getTransaction(0, 33)
       ).to.be.revertedWithCustomError(
@@ -120,9 +116,11 @@ describe("MultiSig Contract should succeed every test", function () {
         "InvalidTransactionID"
       );
 
+      // Getting Transaction Data
       const { _to, _amount, _done, _posVoteCount, _status } =
         await aliceProxyContract.getTransaction(0, 0);
 
+      // Confirming
       expect(_to).to.equal(cara.address);
       expect(_amount).to.equal(2);
       expect(_done).to.be.false;
@@ -131,17 +129,26 @@ describe("MultiSig Contract should succeed every test", function () {
     });
 
     it("Should add a user", async () => {
+      // Checking user not in a vault
       await expect(
         aliceProxyContract.connect(john).getAllVaultCount()
       ).to.be.revertedWithCustomError(aliceProxyContract, "AddressNotInAVault");
+      // Adding user to a vault that doesn't exist
       await expect(
         aliceProxyContract.connect(bob).addUsers(1, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
-      await expect(aliceProxyContract.connect(owner).addUsers(0, [])).to.not.be
-        .reverted;
+
+      // Null address passing
+      await expect(
+        aliceProxyContract.connect(owner).addUsers(0, [])
+      ).to.be.revertedWith("No address added");
+
+      // Adding user
       await expect(
         aliceProxyContract.connect(owner).addUsers(0, [john.address])
       ).to.not.be.reverted;
+
+      // Confirmation
       expect(
         await aliceProxyContract.connect(john).getAllVaultCount()
       ).to.deep.equal([1]);
@@ -153,84 +160,108 @@ describe("MultiSig Contract should succeed every test", function () {
     });
 
     it("Should make a member as owner", async () => {
+      // Initial Confirmation
       {
-        // Since I know the 0 index is Cara
         const { _allusers } = await aliceProxyContract.getVault(1);
+        // Since I know the 0 index is Cara
         expect(_allusers[0].person).to.equal(cara.address);
         expect(_allusers[0].position).to.equal(1);
       }
 
+      // Passing invalid vault index
       await expect(
         aliceProxyContract.connect(bob).makeOwner(2, cara.address)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      // Checking function with a non-admin user
       await expect(
         aliceProxyContract.connect(bob).makeOwner(0, cara.address)
       ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
 
+      // Making Cara an owner
       await aliceProxyContract.makeOwner(0, cara.address);
 
-      // Since I know the 0 index is Cara
+      // Confirmation
       const { _allusers } = await aliceProxyContract.getVault(1);
+      // Since I know the 0 index is Cara
       expect(_allusers[0].person).to.equal(cara.address);
       expect(_allusers[0].position).to.equal(2);
     });
 
     it("Should set votes count", async () => {
+      // Initial Confirmation
       {
-        // Since I know the 0 index is Cara
         const { _reqVotes } = await aliceProxyContract.getVault(1);
+        // Since I know the 0 index is Cara
         expect(_reqVotes).to.equal(1);
       }
 
+      // Passing invalid vault
       await expect(
         aliceProxyContract.connect(bob).setVotesCount(2, 2)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      // Checking with user account
       await expect(
         aliceProxyContract.connect(bob).setVotesCount(0, 2)
       ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+      // Passing in a vote more than the owner count of the vault
       await expect(
         aliceProxyContract.setVotesCount(0, 3)
       ).to.to.revertedWithCustomError(aliceProxyContract, "VoteCountTooHigh");
 
+      // Making a user owner
       expect(await aliceProxyContract.makeOwner(0, cara.address)).to.not.be
         .reverted;
 
-      expect(await aliceProxyContract.setVotesCount(0, 2)).to.not.be.reverted;
+      // Setting the votes count to 2
+      expect(await aliceProxyContract.connect(cara).setVotesCount(0, 2)).to.not
+        .be.reverted;
 
+      // Confirmation
       const { _reqVotes } = await aliceProxyContract.getVault(1);
       expect(_reqVotes).to.equal(2);
     });
 
     it("Should create a transaction and edit it", async () => {
+      // Creating transaction
       await expect(aliceProxyContract.createTransaction(0, cara.address, 2, []))
         .to.not.be.reverted;
+
+      // Initial Confirmation
       {
         const { _to, _amount } = await aliceProxyContract.getTransaction(0, 0);
 
         expect(_to).to.equal(cara.address);
         expect(_amount).to.equal(2);
       }
+
+      // Passing in a fake vault index
       await expect(
         aliceProxyContract.editTransaction(2, 4, john.address, 5, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      // Passing in a fake transaction index
       await expect(
         aliceProxyContract.editTransaction(0, 4, john.address, 5, [])
       ).to.be.revertedWithCustomError(
         aliceProxyContract,
         "InvalidTransactionID"
       );
+
+      // Editing Transaction
       expect(
         await aliceProxyContract.editTransaction(0, 0, john.address, 5, [])
       ).to.not.be.reverted;
 
+      // Confirmation
       const { _to, _amount } = await aliceProxyContract.getTransaction(0, 0);
-
       expect(_to).to.equal(john.address);
       expect(_amount).to.equal(5);
     });
 
     it("Should be able to perform a transaction", async () => {
+      // Saving Caras current balance
       const _caraBalance = await cara.getBalance();
+
+      // Creating a transaction
       await expect(
         aliceProxyContract.createTransaction(
           0,
@@ -239,16 +270,24 @@ describe("MultiSig Contract should succeed every test", function () {
           []
         )
       ).to.not.be.reverted;
+
+      // Transferring money from owner to vault
       await aliceProxyContract.transferMoney(1, {
         value: ethers.utils.parseEther("5"),
       });
+
+      // Confirming the vault contract has 5 Ether
       expect(
         await aliceProxyContract.provider.getBalance(aliceProxyContract.address)
       ).to.equal(ethers.utils.parseEther("5"));
 
+      // Confirmation using the Vault Object is done in another test
+
+      // Passing a fake vault index
       await expect(
         aliceProxyContract.performTransaction(5, 12)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      // Passing a fake transaction index
       await expect(
         aliceProxyContract.performTransaction(0, 12)
       ).to.be.revertedWithCustomError(
@@ -256,24 +295,28 @@ describe("MultiSig Contract should succeed every test", function () {
         "InvalidTransactionID"
       );
 
+      // Attempting to do the transaction without votes
       await expect(
         aliceProxyContract.performTransaction(0, 0)
       ).to.be.revertedWith("Not enough Votes");
 
+      // Owner votes yes
       expect(await aliceProxyContract.castVote(0, 0, true)).to.not.be.reverted;
 
+      // Confirming data about the transaction object
       const { _posVoteCount, _amount } =
         await aliceProxyContract.getTransaction(0, 0);
       expect(_posVoteCount).to.equal(1);
       expect(_amount).to.equal(ethers.utils.parseEther("2"));
 
+      // Performing the transaction from the vault to Cara
       await expect(aliceProxyContract.performTransaction(0, 0)).to.not.be
         .reverted;
 
+      // Confirmations
       expect(
         await aliceProxyContract.provider.getBalance(aliceProxyContract.address)
       ).to.equal(ethers.utils.parseEther("3"));
-
       expect(await cara.provider.getBalance(cara.address)).to.equal(
         ethers.utils.parseEther("2").add(_caraBalance)
       );
