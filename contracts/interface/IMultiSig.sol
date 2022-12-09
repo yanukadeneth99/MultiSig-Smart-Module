@@ -1,39 +1,75 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// TODO : Fix the comments (Added mappings)
-// TODO : Set up Deposit event
-// TODO : Setup other events
-
 interface IMultiSig {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     // Emitted when a new vault is created
-    event VaultCreated(address indexed owner, uint256 vaultId, uint256 numOfUsers);
+    event VaultCreated(
+        address indexed owner,
+        uint256 vaultId,
+        uint256 numOfUsers
+    );
 
     // Emitted when creating a transaction
-    event TransactionCreated(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId);
+    event TransactionCreated(
+        address indexed owner,
+        uint256 indexed vaultId,
+        uint256 indexed transactionId
+    );
 
     // Emitted when new users are added into a vault
-    event NewUsersAdded(address indexed owner, uint256 indexed vaultId, uint256 numOfUsers);
+    event NewUsersAdded(
+        address indexed owner,
+        uint256 indexed vaultId,
+        uint256 numOfUsers
+    );
 
     // Emitted when you make a user an owner
-    event MadeOwner(address indexed owner, uint256 indexed vaultId, address newOwner);
+    event MadeOwner(
+        address indexed owner,
+        uint256 indexed vaultId,
+        address newOwner
+    );
 
     // Emitted when you change the vote count of a vault
-    event ChangeVoteCount(address indexed owner, uint256 indexed vaultId, uint256 voteCount);
+    event ChangeVoteCount(
+        address indexed owner,
+        uint256 indexed vaultId,
+        uint256 voteCount
+    );
 
     // Emitted when a transaction is edited
-    event TransactionEdited(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId);
+    event TransactionEdited(
+        address indexed owner,
+        uint256 indexed vaultId,
+        uint256 indexed transactionId
+    );
 
     // Emitted when a Transaction is completed
-    event TransactionComplete(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId, uint256 amount);
+    event TransactionComplete(
+        address indexed owner,
+        uint256 indexed vaultId,
+        uint256 indexed transactionId,
+        uint256 amount
+    );
 
     // Emitted when a owner casts a vote
-    event CastVote(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId, bool vote);
+    event CastVote(
+        address indexed owner,
+        uint256 indexed vaultId,
+        uint256 indexed transactionId,
+        bool vote
+    );
 
     // Emitted when a vote is changed
-    event ChangeVote(address indexed owner, uint256 indexed vaultId, uint256 indexed transactionId, bool prevVote, bool newVote);
+    event ChangeVote(
+        address indexed owner,
+        uint256 indexed vaultId,
+        uint256 indexed transactionId,
+        bool prevVote,
+        bool newVote
+    );
 
     // Emitted when a vault is enabled
     event EnableVault(address indexed owner, uint256 indexed vaultId);
@@ -42,20 +78,36 @@ interface IMultiSig {
     event DisableVault(address indexed owner, uint256 indexed vaultId);
 
     // Emitted when a user is enabled
-    event EnableUser(address indexed owner, uint256 indexed vaultId, address user);
+    event EnableUser(
+        address indexed owner,
+        uint256 indexed vaultId,
+        address user
+    );
 
     // Emitted when a user is disabled
-    event DisableUser(address indexed owner, uint256 indexed vaultId, address user);
+    event DisableUser(
+        address indexed owner,
+        uint256 indexed vaultId,
+        address user
+    );
 
     // Emitted when an amount is sent to the contract
-    event Deposit(address indexed sender, uint256 indexed vaultId, uint256 amount);
+    event Deposit(
+        address indexed sender,
+        uint256 indexed vaultId,
+        uint256 amount
+    );
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     /// @dev Vault Object holds all the values required to create and manage a vault
-    /// @param users User Object which has the address and the position
-    /// @param votes Total votes required to pass a transaction (counted from the number of owners)
+    /// @param users User ID => User Object
+    /// @param userCount The total number of users in this Vault
+    /// @param votesReq Total votes required to pass a transaction (counted from the number of owners)
+    /// @param transactions Transaction ID => Transaction Object
+    /// @param transactionCount The number of transactions in this Vault
     /// @param status The Status of the Vault (Active, Inactive)
+    /// @param money The Wei value of ether in this contract
     struct Vault {
         mapping(uint256 => User) users;
         uint256 userCount;
@@ -71,7 +123,8 @@ interface IMultiSig {
     /// @param amount The Vault passed in the transaction
     /// @param data The Data passed in the transaction
     /// @param done Whether the Transaction is executed
-    /// @param votes The Total Votes that were done
+    /// @param votes Vote ID => Vote Object
+    /// @param voteCount The number of votes done in this transaction
     struct TxObj {
         address to;
         uint amount;

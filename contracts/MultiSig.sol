@@ -7,9 +7,6 @@ import "./hyperverse/Initializable.sol";
 import "./interface/IMultiSig.sol";
 import "./helpers/ReentrancyGuard.sol";
 
-// TODO : Change the _INTERFACE_ID variable
-// TODO : Add ERC-165 function (supports interface)
-
 /// @title MultiSig Contract
 /// @author Yashura
 /// @dev Create, manage, add, remove and control collective funds in a group vault.
@@ -26,10 +23,6 @@ contract MultiSig is
 
     // Stores the tenant owner
     address private _tenantOwner;
-
-    // InterfaceID for the Contract
-    // Hex Value of all the functions in IMultiSig passed through XOR
-    bytes4 private constant _INTERFACE_ID = 0x0342a3c8;
 
     // User -> Vault IDs.
     /// @dev Always starts with 1
