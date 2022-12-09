@@ -73,11 +73,11 @@ interface IMultiSig {
         bool vote;
     }
 
-    /// @dev Enum which holds the position of the user (0 - ADMIN, 1 - USER)
+    /// @dev Enum which holds the position of the user
     enum Position {
-        OWNER,
+        INACTIVE,
         USER,
-        INACTIVE
+        OWNER
     }
 
     /// @dev Enum which holds the status of the Vault
@@ -154,4 +154,7 @@ interface IMultiSig {
 
     // Triggered when an interaction is done with not enough Ether
     error NotEnoughEther();
+
+    // Triggered when trying to add in a user that already exists
+    error UserExists();
 }

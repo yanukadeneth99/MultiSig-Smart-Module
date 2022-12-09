@@ -145,6 +145,11 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(
         await aliceProxyContract.connect(john).getAllVaultCount()
       ).to.deep.equal([1]);
+
+      // Adding the same person again
+      await expect(
+        aliceProxyContract.connect(owner).addUsers(0, [john.address])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "UserExists");
     });
 
     it("Should make a member as owner", async () => {
@@ -167,7 +172,7 @@ describe("MultiSig Contract should succeed every test", function () {
       // Since I know the 0 index is Cara
       const { _allusers } = await aliceProxyContract.getVault(1);
       expect(_allusers[0].person).to.equal(cara.address);
-      expect(_allusers[0].position).to.equal(0);
+      expect(_allusers[0].position).to.equal(2);
     });
 
     it("Should set votes count", async () => {
@@ -206,16 +211,17 @@ describe("MultiSig Contract should succeed every test", function () {
         expect(_amount).to.equal(2);
       }
       await expect(
-        aliceProxyContract.editTransaction(2, 4, john.address, 5)
+        aliceProxyContract.editTransaction(2, 4, john.address, 5, [])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
       await expect(
-        aliceProxyContract.editTransaction(0, 4, john.address, 5)
+        aliceProxyContract.editTransaction(0, 4, john.address, 5, [])
       ).to.be.revertedWithCustomError(
         aliceProxyContract,
         "InvalidTransactionID"
       );
-      expect(await aliceProxyContract.editTransaction(0, 0, john.address, 5)).to
-        .not.be.reverted;
+      expect(
+        await aliceProxyContract.editTransaction(0, 0, john.address, 5, [])
+      ).to.not.be.reverted;
 
       const { _to, _amount } = await aliceProxyContract.getTransaction(0, 0);
 
@@ -329,6 +335,232 @@ describe("MultiSig Contract should succeed every test", function () {
       await expect(
         aliceProxyContract.connect(cara).castVote(0, 1, true)
       ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+    });
+
+    it("Should be able to enabled a vault", async () => {
+      // Wrong Vault index
+      await expect(
+        aliceProxyContract.enableVault(22)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+
+      // Cant Enable an Already enbled Vault
+      await expect(
+        aliceProxyContract.enableVault(0)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "AlreadyActiveVault");
+
+      // Disable Vault with wrong vault index
+      await expect(
+        aliceProxyContract.disableVault(22)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+
+      // Disable Vault
+      expect(await aliceProxyContract.disableVault(0)).to.not.be.reverted;
+
+      // Confirm that the Vault is disabled
+      {
+        const { _status } = await aliceProxyContract.getVault(1);
+        expect(_status).to.equal(1);
+      }
+
+      // Now enable vault back
+      await expect(aliceProxyContract.enableVault(0)).to.not.be.reverted;
+
+      // Confirm the Vault Status
+      {
+        const { _status } = await aliceProxyContract.getVault(1);
+        expect(_status).to.equal(0);
+      }
+    });
+
+    it("Should be able to enable a user", async () => {
+      // Wrong Vault index
+      await expect(
+        aliceProxyContract.enableUser(22, cara.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+
+      // Cant Enable an Already enbled User
+      await expect(
+        aliceProxyContract.enableUser(0, cara.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "AlreadyEnabledUser");
+
+      // Disable User with wrong address
+      await expect(
+        aliceProxyContract.disableUser(0, john.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "UserNotFound");
+
+      // Disable User Cara
+      expect(await aliceProxyContract.disableUser(0, cara.address)).to.not.be
+        .reverted;
+
+      // Confirm that the User is disabled
+      {
+        const { _allusers } = await aliceProxyContract.getVault(1);
+        // Since I know cara is in position 0
+        expect(_allusers[0].position).to.equal(0);
+      }
+
+      // Now enable the user back
+      await expect(aliceProxyContract.enableUser(0, cara.address)).to.not.be
+        .reverted;
+
+      // Confirm the User Status
+      {
+        const { _allusers } = await aliceProxyContract.getVault(1);
+        // Since I know cara is in position 0
+        expect(_allusers[0].position).to.equal(1);
+      }
+    });
+
+    it("Disabled users should not be able to interact with the Vault", async () => {
+      // Confirm Cara isnt an owner
+      {
+        const { _allusers } = await aliceProxyContract.getVault(1);
+        expect(_allusers[0].position).to.not.equal(2);
+      }
+
+      // Make User Cara an admin
+      expect(await aliceProxyContract.makeOwner(0, cara.address)).to.not.be
+        .reverted;
+
+      // Confirm Cara is an owner
+      {
+        const { _allusers } = await aliceProxyContract.getVault(1);
+        expect(_allusers[0].position).to.equal(2);
+      }
+
+      // Disable User Cara
+      expect(await aliceProxyContract.disableUser(0, cara.address)).to.not.be
+        .reverted;
+
+      // Should not be able to create Transaction
+      await expect(
+        aliceProxyContract
+          .connect(cara)
+          .createTransaction(0, john.address, 2, [])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "Unauthorized");
+
+      // Should not be able to make another person owner
+      await expect(
+        aliceProxyContract.connect(cara).makeOwner(0, bob.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+
+      // Should not be able to add users
+      await expect(
+        aliceProxyContract.connect(cara).addUsers(0, [john.address])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+
+      // Should not be bale to setVotesCount
+      await expect(
+        aliceProxyContract.connect(cara).setVotesCount(0, 5)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+
+      // Should not be able to edit transactions
+      await aliceProxyContract.createTransaction(0, john.address, 5, []);
+      await expect(
+        aliceProxyContract
+          .connect(cara)
+          .editTransaction(0, 0, cara.address, 20, [])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "SameAddress");
+      await expect(
+        aliceProxyContract
+          .connect(cara)
+          .editTransaction(0, 0, bob.address, 50, [])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "Unauthorized");
+
+      // Should not be able to cast votes
+      await expect(
+        aliceProxyContract.connect(cara).addUsers(0, [john.address])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+    });
+
+    it("Should be able to disable and re-enable Vault", async () => {
+      // Confirm Vault is not disabled
+      {
+        const { _status } = await aliceProxyContract.getVault(1);
+        expect(_status).to.not.equal(1);
+      }
+
+      // Disable the Vault
+      expect(await aliceProxyContract.disableVault(0)).to.not.be.reverted;
+
+      // Confirm Vault is Disabled
+      {
+        const { _status } = await aliceProxyContract.getVault(1);
+        expect(_status).to.equal(1);
+      }
+
+      // Should not be able to create Transaction
+      await expect(
+        aliceProxyContract.createTransaction(0, john.address, 2, [])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
+      // Should not be able to add users
+      await expect(
+        aliceProxyContract.addUsers(0, [john.address])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
+      // Should not be able to make a member an owner
+      await expect(
+        aliceProxyContract.makeOwner(0, cara.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
+      // Should not be able to set Votes Count
+      await expect(
+        aliceProxyContract.setVotesCount(0, cara.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
+      // Should not be able to perform transaction
+      await aliceProxyContract.enableVault(0);
+      // Confirm Vault is Enabled
+      {
+        const { _status } = await aliceProxyContract.getVault(1);
+        expect(_status).to.equal(0);
+      }
+      // Make a Transaction
+      await aliceProxyContract
+        .connect(bob)
+        .createTransaction(0, john.address, 55, []);
+      // Disable Vault again
+      await aliceProxyContract.disableVault(0);
+      // Confirm Vault is Disabled
+      {
+        const { _status } = await aliceProxyContract.getVault(1);
+        expect(_status).to.equal(1);
+      }
+      await expect(
+        aliceProxyContract
+          .connect(bob)
+          .editTransaction(0, 0, cara.address, 55, [])
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
+      // Should not be able to perform Transactions
+      await aliceProxyContract.transferMoney(1, {
+        value: ethers.utils.parseEther("22"),
+      });
+      await expect(
+        aliceProxyContract.performTransaction(0, 0)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
+      // Should not be able to cast votes
+      await expect(
+        aliceProxyContract.castVote(0, 0, true)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InActiveVault");
+
+      // Enabling User, Disabling User and Enabling Vault works
+    });
+  });
+
+  describe("All the Getter Functions works", function () {
+    // Deploying all and creating a vault before every function
+    beforeEach(async () => {
+      await aliceProxyContract
+        .connect(owner)
+        .createVault([cara.address, bob.address]);
+    });
+
+    it("Getting all vault count should work", async () => {
+      expect(await aliceProxyContract.getAllVaultCount()).to.deep.equal([1]);
+      await aliceProxyContract.createVault([john.address]);
     });
   });
 });
