@@ -88,7 +88,7 @@ describe("MultiSig Contract should succeed every test", function () {
     expect(_reqVotes).to.equal(1);
   });
 
-  describe("All owner functionality should work", function () {
+  describe("All contract functionality should work", function () {
     // Deploying all and creating a vault before every function
     beforeEach(async () => {
       await aliceProxyContract
@@ -233,7 +233,7 @@ describe("MultiSig Contract should succeed every test", function () {
           []
         )
       ).to.not.be.reverted;
-      await aliceProxyContract.receiveMoney({
+      await aliceProxyContract.transferMoney(1, {
         value: ethers.utils.parseEther("5"),
       });
       expect(
@@ -254,7 +254,7 @@ describe("MultiSig Contract should succeed every test", function () {
         aliceProxyContract.performTransaction(0, 0)
       ).to.be.revertedWith("Not enough Votes");
 
-      expect(await aliceProxyContract.castVote(0, 0, 1)).to.not.be.reverted;
+      expect(await aliceProxyContract.castVote(0, 0, true)).to.not.be.reverted;
 
       const { _posVoteCount, _amount } =
         await aliceProxyContract.getTransaction(0, 0);
@@ -271,6 +271,64 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(await cara.provider.getBalance(cara.address)).to.equal(
         ethers.utils.parseEther("2").add(_caraBalance)
       );
+    });
+
+    it("Should be able to cast a vote", async () => {
+      // Transactions
+      await expect(
+        aliceProxyContract.createTransaction(
+          0,
+          cara.address,
+          ethers.utils.parseEther("2"),
+          []
+        )
+      ).to.not.be.reverted;
+      await expect(
+        aliceProxyContract.createTransaction(
+          0,
+          john.address,
+          ethers.utils.parseEther("5"),
+          []
+        )
+      ).to.not.be.reverted;
+
+      // Checking wrong vault index
+      await expect(
+        aliceProxyContract.castVote(2, 5, true)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+      // Checking wrong transactionId
+      await expect(
+        aliceProxyContract.castVote(0, 5, true)
+      ).to.be.revertedWithCustomError(
+        aliceProxyContract,
+        "InvalidTransactionID"
+      );
+
+      // Casting positive vote
+      await expect(aliceProxyContract.castVote(0, 1, true)).to.not.be.reverted;
+
+      // Casting positive vote again
+      await expect(
+        aliceProxyContract.castVote(0, 1, true)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "SameVote");
+
+      {
+        const { _posVoteCount } = await aliceProxyContract.getTransaction(0, 1);
+        expect(_posVoteCount).to.equal(1);
+      }
+
+      // Change vote to No
+      await expect(aliceProxyContract.castVote(0, 1, false)).to.not.be.reverted;
+
+      {
+        const { _posVoteCount } = await aliceProxyContract.getTransaction(0, 1);
+        expect(_posVoteCount).to.equal(0);
+      }
+
+      // Casting Vote with non admin
+      await expect(
+        aliceProxyContract.connect(cara).castVote(0, 1, true)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
     });
   });
 });

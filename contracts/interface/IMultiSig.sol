@@ -31,6 +31,7 @@ interface IMultiSig {
         mapping(uint256 => TxObj) transactions;
         uint256 transactionCount;
         Status status;
+        uint256 money;
     }
 
     /// @dev Transaction Object
@@ -66,10 +67,10 @@ interface IMultiSig {
 
     /// @dev The Vote Object which holds all votes
     /// @param person The Address of the person voting
-    /// @param vote The ID of the vote (0 - None, 1 - Positive(Yes), 2 - Negative(No), 3 - Withdrawn (Neutral))
+    /// @param vote The Vote of that person (true = yes, false = no)
     struct Vote {
         address person;
-        uint8 vote;
+        bool vote;
     }
 
     /// @dev Enum which holds the position of the user (0 - ADMIN, 1 - USER)
@@ -134,8 +135,7 @@ interface IMultiSig {
     error VotedTransaction();
 
     // Triggered when you try to vote again, with the same voting decision
-    /// @param vote The Vote ID you have already done
-    error SameVote(uint8 vote);
+    error SameVote();
 
     // Triggered when someone requests a do proceed with a transaction that does not exist
     error NullTransaction();
@@ -148,4 +148,10 @@ interface IMultiSig {
 
     // Triggered when an invalid transaction ID is called
     error InvalidTransactionID();
+
+    // Triggered when no money is passed
+    error NoEtherPassed();
+
+    // Triggered when an interaction is done with not enough Ether
+    error NotEnoughEther();
 }
