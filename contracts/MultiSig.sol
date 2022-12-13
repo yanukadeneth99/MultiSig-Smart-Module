@@ -252,12 +252,10 @@ contract MultiSig is
         _tx.data = data;
 
         // Emit event
-        uint256 _transCount;
-        if (_v.transactionCount > 0) _transCount = _v.transactionCount - 1;
         emit TransactionCreated(
             msg.sender,
             _vaultId[msg.sender][index],
-            _transCount
+            _v.transactionCount--
         );
     }
 
@@ -394,16 +392,22 @@ contract MultiSig is
         address to,
         uint256 amount,
         bytes calldata data
-    )
-        external
-        hasVault
-        indexInBounds(index)
-        notInactiveVault(index)
-        notZeroAddress(to)
-        callerNotInactive(index)
-    {
+    ) external hasVault indexInBounds(index) notZeroAddress(to) {
         // Get Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Check if the Status is Inactive and revert if so
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
+        // Check if the caller is not inactive
+        for (uint256 i; i < _v.userCount; i++) {
+            if (_v.users[i].person == msg.sender) {
+                if (_v.users[i].position == Position.INACTIVE) {
+                    revert Unauthorized();
+                }
+                break;
+            }
+        }
 
         // If the transaction ID requested is higher than the current count, then revert
         uint256 _transCount = _v.transactionCount;
@@ -494,15 +498,26 @@ contract MultiSig is
         uint256 index,
         uint256 transactionId,
         bool decision
-    )
-        external
-        hasVault
-        indexInBounds(index)
-        notInactiveVault(index)
-        isOwnerVault(index)
-    {
+    ) external hasVault indexInBounds(index) {
         // Get Vault Object
         Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+
+        // Check if the Status is Inactive and revert if so
+        if (_v.status == Status.INACTIVE) revert InActiveVault();
+
+        address _caller = msg.sender;
+
+        bool _isOwner;
+        for (uint256 i; i < _v.userCount; i++) {
+            User memory _finder = _v.users[i];
+            if (
+                _finder.person == _caller && _finder.position == Position.OWNER
+            ) {
+                _isOwner = true;
+                break;
+            }
+        }
+        if (!_isOwner) revert NotAnOwner();
 
         // If the transaction ID requested is higher than the current count, then revert
         uint256 _transCount = _v.transactionCount;

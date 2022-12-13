@@ -28,7 +28,7 @@ contract MultiSigFactory is CloneFactory {
     address public immutable owner;
     address public immutable masterContract;
     address private hyperverseAdmin =
-        0x62a7aa79a52591Ccc62B71729329A80a666fA50f;
+        0x24c7E0dbB21d245e04fF3271bD0624D2d61D4abA;
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
