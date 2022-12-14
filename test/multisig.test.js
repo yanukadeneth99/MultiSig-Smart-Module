@@ -128,7 +128,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_status).to.equal(0);
     });
 
-    it("Should add a user", async () => {
+    xit("Should add a user", async () => {
       // Checking user not in a vault
       await expect(
         aliceProxyContract.connect(john).getAllVaultCount()
@@ -159,7 +159,7 @@ describe("MultiSig Contract should succeed every test", function () {
       ).to.be.revertedWithCustomError(aliceProxyContract, "UserExists");
     });
 
-    it("Should make a member as owner", async () => {
+    xit("Should make a member as owner", async () => {
       // Initial Confirmation
       {
         const { _allusers } = await aliceProxyContract.getVault(1);
@@ -187,7 +187,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_allusers[0].position).to.equal(2);
     });
 
-    it("Should set votes count", async () => {
+    xit("Should set votes count", async () => {
       // Initial Confirmation
       {
         const { _reqVotes } = await aliceProxyContract.getVault(1);
@@ -221,7 +221,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_reqVotes).to.equal(2);
     });
 
-    it("Should create a transaction and edit it", async () => {
+    xit("Should create a transaction and edit it", async () => {
       // Creating transaction
       await expect(aliceProxyContract.createTransaction(0, cara.address, 2, []))
         .to.not.be.reverted;
@@ -257,7 +257,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_amount).to.equal(5);
     });
 
-    it("Should be able to perform a transaction", async () => {
+    xit("Should be able to perform a transaction", async () => {
       // Saving Caras current balance
       const _caraBalance = await cara.getBalance();
 
@@ -322,7 +322,7 @@ describe("MultiSig Contract should succeed every test", function () {
       );
     });
 
-    it("Should be able to cast a vote", async () => {
+    xit("Should be able to cast a vote", async () => {
       // Transactions
       await expect(
         aliceProxyContract.createTransaction(
@@ -380,7 +380,7 @@ describe("MultiSig Contract should succeed every test", function () {
       ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
     });
 
-    it("Should be able to enabled a vault", async () => {
+    xit("Should be able to enabled a vault", async () => {
       // Wrong Vault index
       await expect(
         aliceProxyContract.enableVault(22)
@@ -415,7 +415,7 @@ describe("MultiSig Contract should succeed every test", function () {
       }
     });
 
-    it("Should be able to enable a user", async () => {
+    xit("Should be able to enable a user", async () => {
       // Wrong Vault index
       await expect(
         aliceProxyContract.enableUser(22, cara.address)
@@ -454,7 +454,7 @@ describe("MultiSig Contract should succeed every test", function () {
       }
     });
 
-    it("Should not be able to interaction with the vault once user is disabled", async () => {
+    xit("Should not be able to interaction with the vault once user is disabled", async () => {
       // Confirm Cara isnt an owner
       {
         const { _allusers } = await aliceProxyContract.getVault(1);
@@ -511,7 +511,7 @@ describe("MultiSig Contract should succeed every test", function () {
       ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
     });
 
-    it("Should be able to disable and re-enable Vault", async () => {
+    xit("Should be able to disable and re-enable Vault", async () => {
       // Confirm Vault is not disabled
       {
         const { _status } = await aliceProxyContract.getVault(1);
@@ -592,7 +592,7 @@ describe("MultiSig Contract should succeed every test", function () {
     });
   });
 
-  describe("Checking Getter Functions", function () {
+  xdescribe("Checking Getter Functions", function () {
     // Deploying all and creating a vault before every function
     beforeEach(async () => {
       await aliceProxyContract
@@ -648,7 +648,7 @@ describe("MultiSig Contract should succeed every test", function () {
     });
   });
 
-  describe("Transferring Money into Vaults", function () {
+  xdescribe("Transferring Money into Vaults", function () {
     // Deploying all and creating a vault before every function
     beforeEach(async () => {
       await aliceProxyContract

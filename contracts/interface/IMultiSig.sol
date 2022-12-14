@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+// TODO : Add functions
+
 interface IMultiSig {
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     // Emitted when a new vault is created
@@ -100,40 +104,35 @@ interface IMultiSig {
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    /// @dev Vault Object holds all the values required to create and manage a vault
-    /// @param users User ID => User Object
+    /// @dev The Vault Object
     /// @param userCount The total number of users in this Vault
-    /// @param votesReq Total votes required to pass a transaction (counted from the number of owners)
-    /// @param transactions Transaction ID => Transaction Object
     /// @param transactionCount The number of transactions in this Vault
-    /// @param status The Status of the Vault (Active, Inactive)
-    /// @param money The Wei value of ether in this contract
+    /// @param votesReq Total votes required to pass a transaction (counted from the number of owners)
+    /// @param money The Wei value of ether in this vault
+    /// @param status The Status of the Vault (Active, Inactive) - `uint8`
     struct Vault {
-        mapping(uint256 => User) users;
         uint256 userCount;
-        uint256 votesReq;
-        mapping(uint256 => TxObj) transactions;
         uint256 transactionCount;
-        Status status;
+        uint256 votesReq;
         uint256 money;
+        Status status;
     }
 
     /// @dev Transaction Object
     /// @param to The Address you want to do the transaction to
-    /// @param amount The Vault passed in the transaction
-    /// @param data The Data passed in the transaction
     /// @param done Whether the Transaction is executed
-    /// @param votes Vote ID => Vote Object
+    /// @param amount The Vault passed in the transaction
     /// @param voteCount The number of votes done in this transaction
+    /// @param data The Data passed in the transaction
     struct TxObj {
         address to;
-        uint amount;
-        bytes data;
         bool done;
-        mapping(uint256 => Vote) votes;
+        uint256 amount;
         uint256 voteCount;
+        bytes data;
     }
 
+    // TODO : ????
     /// @dev Transaction Object used to Get all transactions with their ID
     /// @param ID The index of the transaction in the `transactions` array in `Vault`
     /// @param transaction The Transaction Object
@@ -142,20 +141,20 @@ interface IMultiSig {
         TxObj transaction;
     }
 
-    /// @dev User Object which holds all users
+    /// @dev User Object
     /// @param person The Address of the User
-    /// @param position Position Object which contains the user's position
+    /// @param position Position Object which contains the user's position (Inactive, User, Owner) - `uint8`
     struct User {
         address person;
         Position position;
     }
 
-    /// @dev The Vote Object which holds all votes
+    /// @dev The Vote Object
     /// @param person The Address of the person voting
-    /// @param vote The Vote of that person (true = yes, false = no)
+    /// @param vote The Vote of that person (0 - Not done yet, 1 - Yes, 2 - No) - `uint8`
     struct Vote {
         address person;
-        bool vote;
+        VoteSelection vote;
     }
 
     /// @dev Enum which holds the position of the user
@@ -169,6 +168,13 @@ interface IMultiSig {
     enum Status {
         ACTIVE,
         INACTIVE
+    }
+
+    /// @dev Enum which holds which vote is selected
+    enum VoteSelection {
+        NEUTRAL,
+        POSITIVE,
+        NEGATIVE
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E R R O R S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/

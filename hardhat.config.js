@@ -36,6 +36,10 @@ module.exports = {
       url: ``,
       accounts,
     },
+    goerli: {
+      url: process.env.GOERLI_URL,
+      accounts: [process.env.PRIVATE_KEY],
+    },
   },
   settings: {
     optimizer: {
