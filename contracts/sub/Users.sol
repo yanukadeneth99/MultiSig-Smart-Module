@@ -70,6 +70,13 @@ contract Users {
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
+    /// @dev Self add yourself to be the owner
+    /// @notice Used at the start
+    function selfAdd() internal {
+        person[userCount] = msg.sender;
+        position[userCount++] = Position.OWNER;
+    }
+
     /// @dev Add in one user
     /// @param user The user address you want to add
     function addUser(address user) internal notZeroAddress(user) owner {

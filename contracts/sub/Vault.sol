@@ -9,17 +9,21 @@ import "../helpers/ReentrancyGuard.sol";
 contract Vault is ReentrancyGuard {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T A T E @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // The number of transactions in this Vault
-    uint256 public transactionCount;
+    // User -> Vault IDs.
+    /// @dev Always starts with 1
+    mapping(uint256 => VaultObj) private _vaults;
 
-    // Total votes required to pass a transaction (counted from the number of owners)
-    uint256 public votesReq;
+    // Holds the current vaults count created
+    uint256 _numOfVaults;
 
-    // The Wei value of ether in this vault
-    uint256 public money;
-
-    // The Status of the Vault (Active, Inactive) - `uint8`
-    Status public status;
+    struct VaultObj {
+        // Total votes required to pass a transaction (counted from the number of owners)
+        uint256 votesReq;
+        // The Wei value of ether in this vault
+        uint256 money;
+        // The Status of the Vault (Active, Inactive) - `uint8`
+        Status status;
+    }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E N U M S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -46,30 +50,21 @@ contract Vault is ReentrancyGuard {
     // Triggered when an interaction is done with not enough Ether
     error NotEnoughEther();
 
-    // Triggered when a function is being used with an Address 0
-    error ZeroAddress();
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ M O D I F I E R S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // Check whether address passed in a zero address
-    modifier notZeroAddress(address _in) {
-        if (_in == address(0)) revert ZeroAddress();
-        _;
-    }
-
     // Check whether the vault in inactive
-    modifier notInactiveVault() {
+    modifier notInactiveVault(uint256 index) {
         // Check if the Status is Inactive and revert if so
-        if (status == Status.INACTIVE) revert InActiveVault();
+        if (_vaults[index].status == Status.INACTIVE) revert InActiveVault();
 
         // All Good Continue
         _;
     }
 
     // Check whether the vault in active
-    modifier activeVault() {
+    modifier activeVault(uint256 index) {
         // Check if the Status is Inactive and revert if so
-        if (status == Status.ACTIVE) revert ActiveVault();
+        if (_vaults[index].status == Status.ACTIVE) revert ActiveVault();
 
         // All Good Continue
         _;
@@ -77,48 +72,62 @@ contract Vault is ReentrancyGuard {
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    /// @dev Add one Transaction into the Vault
-    function addTransaction() internal notInactiveVault {
-        transactionCount++;
+    /// @dev Set the Vote Count
+    /// @param index The Vault ID
+    /// @param voteCount The Vote Count
+    function setVotes(
+        uint256 index,
+        uint256 voteCount
+    ) public notInactiveVault(index) {
+        _vaults[index].votesReq = voteCount;
     }
 
-    /// @dev Set the Vote Count
-    /// @param voteCount The Vote Count
-    function setVotes(uint256 voteCount) internal notInactiveVault {
-        votesReq = voteCount;
+    /// @dev Increases the Number of Vaults Count
+    function createVault() internal {
+        _numOfVaults++;
     }
 
     /// @dev Enabled a disabled Vault
-    function enableVault() internal activeVault {
-        status = Status.ACTIVE;
+    /// @param index The Vault ID
+    function enableVault(uint256 index) internal activeVault(index) {
+        _vaults[index].status = Status.ACTIVE;
     }
 
     /// @dev Set the Status of the Vault as Disabled
-    function disableVault() internal notInactiveVault {
-        status = Status.INACTIVE;
+    /// @param index The Vault ID
+    function disableVault(uint256 index) internal notInactiveVault(index) {
+        _vaults[index].status = Status.INACTIVE;
     }
 
     /// @dev Add money into this vault
+    /// @param index The Vault ID
     /// @param amount The amount added in Wei into this vault
-    function addMoney(uint256 amount) internal {
-        money += amount;
+    function addMoney(uint256 index, uint256 amount) internal {
+        _vaults[index].money += amount;
     }
 
     /// @dev Get all the vault information
-    /// @return _transactionCount The Transaction Count
+    /// @param index The Vault ID
     /// @return _votesReq The votes required to pass
     /// @return _money The amount this vault holds in wei
     /// @return _status The status of the vault
-    function getVault()
+    function getVault(
+        uint256 index
+    )
         external
         view
-        returns (
-            uint256 _transactionCount,
-            uint256 _votesReq,
-            uint256 _money,
-            Status _status
-        )
+        returns (uint256 _votesReq, uint256 _money, Status _status)
     {
-        return (transactionCount, votesReq, money, status);
+        return (
+            _vaults[index].votesReq,
+            _vaults[index].money,
+            _vaults[index].status
+        );
+    }
+
+    /// @dev Get the Next Vault ID
+    /// @return The next ID - `uint256`
+    function getNextVault() internal view returns (uint256) {
+        return _numOfVaults + 1;
     }
 }

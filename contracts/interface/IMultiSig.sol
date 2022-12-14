@@ -6,8 +6,6 @@ pragma solidity ^0.8.0;
 interface IMultiSig {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    function createVault(address[] calldata _userAddresses) external;
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     // Emitted when a new vault is created
@@ -103,79 +101,6 @@ interface IMultiSig {
         uint256 indexed vaultId,
         uint256 amount
     );
-
-    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T R U C T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
-    /// @dev The Vault Object
-    /// @param userCount The total number of users in this Vault
-    /// @param transactionCount The number of transactions in this Vault
-    /// @param votesReq Total votes required to pass a transaction (counted from the number of owners)
-    /// @param money The Wei value of ether in this vault
-    /// @param status The Status of the Vault (Active, Inactive) - `uint8`
-    struct Vault {
-        uint256 userCount;
-        uint256 transactionCount;
-        uint256 votesReq;
-        uint256 money;
-        Status status;
-    }
-
-    /// @dev Transaction Object
-    /// @param to The Address you want to do the transaction to
-    /// @param done Whether the Transaction is executed
-    /// @param amount The Vault passed in the transaction
-    /// @param voteCount The number of votes done in this transaction
-    struct TxObj {
-        address to;
-        bool done;
-        uint256 amount;
-        uint256 voteCount;
-    }
-
-    // TODO : ????
-    /// @dev Transaction Object used to Get all transactions with their ID
-    /// @param ID The index of the transaction in the `transactions` array in `Vault`
-    /// @param transaction The Transaction Object
-    struct AllTxObj {
-        uint256 Id;
-        TxObj transaction;
-    }
-
-    /// @dev User Object
-    /// @param person The Address of the User
-    /// @param position Position Object which contains the user's position (Inactive, User, Owner) - `uint8`
-    struct User {
-        address person;
-        Position position;
-    }
-
-    /// @dev The Vote Object
-    /// @param person The Address of the person voting
-    /// @param vote The Vote of that person (0 - Not done yet, 1 - Yes, 2 - No) - `uint8`
-    struct Vote {
-        address person;
-        VoteSelection vote;
-    }
-
-    /// @dev Enum which holds the position of the user
-    enum Position {
-        INACTIVE,
-        USER,
-        OWNER
-    }
-
-    /// @dev Enum which holds the status of the Vault
-    enum Status {
-        ACTIVE,
-        INACTIVE
-    }
-
-    /// @dev Enum which holds which vote is selected
-    enum VoteSelection {
-        NEUTRAL,
-        POSITIVE,
-        NEGATIVE
-    }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E R R O R S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 

@@ -61,7 +61,7 @@ contract Transactions {
     }
 
     // Check whether address passed in a zero address
-    modifier notZeroAddress(address _in) {
+    modifier nonZeroAddress(address _in) {
         if (_in == address(0)) revert ZeroAddress();
         _;
     }
@@ -76,7 +76,7 @@ contract Transactions {
         address _to,
         uint256 _amount,
         bytes memory _data
-    ) internal notZeroAddress(_to) {
+    ) internal nonZeroAddress(_to) {
         to[transactionCount] = _to;
         amount[transactionCount] = _amount;
         data[transactionCount++] = _data;
@@ -93,7 +93,7 @@ contract Transactions {
         address _to,
         uint256 _amount,
         bytes memory _data
-    ) internal notZeroAddress(_to) indexInBounds(index) {
+    ) internal nonZeroAddress(_to) indexInBounds(index) {
         // Setting values
         to[index] = _to;
         amount[index] = _amount;
