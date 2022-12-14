@@ -128,7 +128,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_status).to.equal(0);
     });
 
-    xit("Should add a user", async () => {
+    it("Should add a user", async () => {
       // Checking user not in a vault
       await expect(
         aliceProxyContract.connect(john).getAllVaultCount()
@@ -159,7 +159,7 @@ describe("MultiSig Contract should succeed every test", function () {
       ).to.be.revertedWithCustomError(aliceProxyContract, "UserExists");
     });
 
-    xit("Should make a member as owner", async () => {
+    it("Should make a member as owner", async () => {
       // Initial Confirmation
       {
         const { _allusers } = await aliceProxyContract.getVault(1);
@@ -187,7 +187,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_allusers[0].position).to.equal(2);
     });
 
-    xit("Should set votes count", async () => {
+    it("Should set votes count", async () => {
       // Initial Confirmation
       {
         const { _reqVotes } = await aliceProxyContract.getVault(1);

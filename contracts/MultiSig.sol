@@ -104,25 +104,32 @@ contract MultiSig is
     }
 
     // Check if the caller is the owner of the vault
-    // @param index Your Vault Position ID
-    // modifier isOwnerVault(uint256 index) {
-    //     address _caller = msg.sender;
+    /// @param index Your Vault Position ID
+    modifier isOwnerVault(uint256 index) {
+        // Get Vault Object
+        uint256 vaultId = _vaultId[msg.sender][index];
+        Vault memory v = _vaults[vaultId];
 
-    //     Vault storage _v = _vaults[_vaultId[_caller][index]];
+        // Flag
+        bool _isOwner;
 
-    //     bool _isOwner;
-    //     for (uint256 i; i < _v.userCount; i++) {
-    //         User memory _finder = _v.users[i];
-    //         if (
-    //             _finder.person == _caller && _finder.position == Position.OWNER
-    //         ) {
-    //             _isOwner = true;
-    //             break;
-    //         }
-    //     }
-    //     if (!_isOwner) revert NotAnOwner();
-    //     _;
-    // }
+        // Loop over till all users are checked
+        for (uint256 i; i < v.userCount; i++) {
+            // Create a User Object
+            User memory u = _users[vaultId][i];
+
+            if (u.person == msg.sender && u.position == Position.OWNER) {
+                _isOwner = true;
+                break;
+            }
+        }
+
+        // Not an Owner
+        if (!_isOwner) revert NotAnOwner();
+
+        // All Good
+        _;
+    }
 
     // Check if the caller is an active member (Owner or User)
     // @param index Your Vault Position ID
@@ -152,7 +159,7 @@ contract MultiSig is
     /// @param index Your Vault Position ID
     modifier notInactiveVault(uint256 index) {
         // Get Vault Object
-        Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+        Vault memory _v = _vaults[_vaultId[msg.sender][index]];
 
         // Check if the Status is Inactive and revert if so
         if (_v.status == Status.INACTIVE) revert InActiveVault();
@@ -216,15 +223,15 @@ contract MultiSig is
     function createVault(
         address[] calldata _userAddresses
     ) external addressArrayCheck(_userAddresses) {
+        // Increment Vault Count
+        _numOfVaults++;
+
         // Create Vault Object
         Vault memory v;
 
         // Set it's values
         v.votesReq = 1;
         v.status = Status.ACTIVE;
-
-        // Increment Num Values
-        _numOfVaults++;
 
         // Add all the people into the object
         for (uint256 i; i < _userAddresses.length; i++) {
@@ -282,7 +289,7 @@ contract MultiSig is
 
         // Setting Values
         _transactions[vaultId][v.transactionCount++] = _tx;
-        _vaults[vaultId] = v;
+        _vaults[vaultId].transactionCount = v.transactionCount;
 
         // Emit event
         emit TransactionCreated(msg.sender, vaultId, v.transactionCount--);
@@ -290,123 +297,137 @@ contract MultiSig is
 
     // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ADD - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // /// @dev Owners are able to add users if the user already doesn't exist
-    // /// @param index Your Vault Position ID
-    // /// @param _userAddresses The userrs you want to add into your vault
-    // function addUsers(
-    //     uint256 index,
-    //     address[] calldata _userAddresses
-    // )
-    //     external
-    //     hasVault
-    //     indexInBounds(index)
-    //     notInactiveVault(index)
-    //     addressArrayCheck(_userAddresses)
-    //     isOwnerVault(index)
-    // {
-    //     // Atleast one user should be passed
-    //     require(_userAddresses.length > 0, "No address added");
+    /// @dev Owners are able to add users if the user already doesn't exist
+    /// @param index Your Vault Position ID
+    /// @param _userAddresses The userrs you want to add into your vault
+    function addUsers(
+        uint256 index,
+        address[] calldata _userAddresses
+    )
+        external
+        hasVault
+        indexInBounds(index)
+        notInactiveVault(index)
+        addressArrayCheck(_userAddresses)
+        isOwnerVault(index)
+    {
+        // Atleast one user should be passed
+        require(_userAddresses.length > 0, "No address added");
 
-    //     // Get the Vault
-    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+        // Get the Vault Object
+        uint256 vaultId = _vaultId[msg.sender][index];
+        Vault memory v = _vaults[vaultId];
 
-    //     // Revert if the user already exists
-    //     for (uint256 i; i < _v.userCount; i++) {
-    //         for (uint256 j; j < _userAddresses.length; j++) {
-    //             if (_v.users[i].person == _userAddresses[j])
-    //                 revert UserExists();
-    //         }
-    //     }
+        // Revert if the user already exists
+        for (uint256 i; i < v.userCount; i++) {
+            // Get User Object
+            User memory u = _users[vaultId][i];
 
-    //     // Add in the users
-    //     for (uint256 i; i < _userAddresses.length; i++) {
-    //         _v.users[_v.userCount++] = (User(_userAddresses[i], Position.USER));
-    //         _vaultId[_userAddresses[i]].push(_numOfVaults);
-    //     }
+            // Loop over the user Address array
+            for (uint256 j; j < _userAddresses.length; j++) {
+                if (u.person == _userAddresses[j]) revert UserExists();
+            }
+        }
 
-    //     // Emit event
-    //     emit NewUsersAdded(
-    //         msg.sender,
-    //         _vaultId[msg.sender][index],
-    //         _userAddresses.length
-    //     );
-    // }
+        // Add in the users
+        for (uint256 i; i < _userAddresses.length; i++) {
+            _users[vaultId][v.userCount++] = (
+                User(_userAddresses[i], Position.USER)
+            );
+            _vaultId[_userAddresses[i]].push(_numOfVaults);
+        }
+
+        // Save User Count
+        _vaults[vaultId].userCount = v.userCount;
+
+        // Emit event
+        emit NewUsersAdded(
+            msg.sender,
+            _vaultId[msg.sender][index],
+            _userAddresses.length
+        );
+    }
 
     // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EDIT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // /// @dev Make an added User as Owner
-    // /// @notice You need to add a user using `addUsers` first
-    // /// @param index Your Vault Position ID
-    // /// @param _ownerAddress The Address you want to make an owner
-    // function makeOwner(
-    //     uint256 index,
-    //     address _ownerAddress
-    // )
-    //     external
-    //     hasVault
-    //     indexInBounds(index)
-    //     notInactiveVault(index)
-    //     notZeroAddress(_ownerAddress)
-    //     isOwnerVault(index)
-    // {
-    //     // Get Vault
-    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    /// @dev Make an added User as Owner
+    /// @notice You need to add a user using `addUsers` first
+    /// @param index Your Vault Position ID
+    /// @param _ownerAddress The Address you want to make an owner
+    function makeOwner(
+        uint256 index,
+        address _ownerAddress
+    )
+        external
+        hasVault
+        indexInBounds(index)
+        notInactiveVault(index)
+        notZeroAddress(_ownerAddress)
+        isOwnerVault(index)
+    {
+        // Get Vault
+        uint256 vaultId = _vaultId[msg.sender][index];
+        Vault memory v = _vaults[vaultId];
 
-    //     // Flag
-    //     bool done;
+        // Flag
+        bool done;
 
-    //     // Make the address an admin if it exists
-    //     for (uint256 i; i < _v.userCount; i++) {
-    //         if (
-    //             _ownerAddress == _v.users[i].person &&
-    //             _v.users[i].position != Position.INACTIVE
-    //         ) {
-    //             _v.users[i].position = Position.OWNER;
-    //             done = true;
-    //             break;
-    //         }
-    //     }
+        // Make the address an admin if it exists
+        for (uint256 i; i < v.userCount; i++) {
+            // Create a user Object
+            User memory u = _users[vaultId][i];
+            if (_ownerAddress == u.person && u.position != Position.INACTIVE) {
+                _users[vaultId][i].position = Position.OWNER;
+                done = true;
+                break;
+            }
+        }
 
-    //     // If User not found, revert
-    //     if (!done) revert UserNotFound();
+        // If User not found, revert
+        if (!done) revert UserNotFound();
 
-    //     // Event emitted
-    //     emit MadeOwner(msg.sender, _vaultId[msg.sender][index], _ownerAddress);
-    // }
+        // Event emitted
+        emit MadeOwner(msg.sender, vaultId, _ownerAddress);
+    }
 
-    // /// @dev Set the Necessary Vote Count to approve any Transaction
-    // /// @param index Your Vault Position ID
-    // /// @param voteCount The Vote Count
-    // function setVotesCount(
-    //     uint256 index,
-    //     uint256 voteCount
-    // )
-    //     external
-    //     hasVault
-    //     indexInBounds(index)
-    //     notInactiveVault(index)
-    //     isOwnerVault(index)
-    // {
-    //     // Get the Vault Object
-    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    /// @dev Set the Necessary Vote Count to approve any Transaction
+    /// @param index Your Vault Position ID
+    /// @param voteCount The Vote Count
+    function setVotesCount(
+        uint256 index,
+        uint256 voteCount
+    )
+        external
+        hasVault
+        indexInBounds(index)
+        notInactiveVault(index)
+        isOwnerVault(index)
+    {
+        // Get the Vault Object
+        uint256 vaultId = _vaultId[msg.sender][index];
+        Vault memory v = _vaults[vaultId];
 
-    //     // Votes cannot be higher than admin count
-    //     uint256 _votes;
-    //     for (uint256 i; i < _v.userCount; i++) {
-    //         if (_v.users[i].position == Position.OWNER) _votes++;
-    //     }
-    //     if (voteCount > _votes) revert VoteCountTooHigh(_votes);
+        // Votes cannot be higher than admin count
+        uint256 adminCount;
+        for (uint256 i; i < v.userCount; i++) {
+            // Create a new User Object
+            User memory u = _users[vaultId][i];
 
-    //     // Set Votes
-    //     _v.votesReq = voteCount;
+            if (u.position == Position.OWNER) adminCount++;
+        }
 
-    //     // Event emitted
-    //     emit ChangeVoteCount(
-    //         msg.sender,
-    //         _vaultId[msg.sender][index],
-    //         voteCount
-    //     );
-    // }
+        if (voteCount > adminCount) revert VoteCountTooHigh(adminCount);
+
+        // Set Votes
+        _vaults[vaultId].votesReq = voteCount;
+
+        // Event emitted
+        emit ChangeVoteCount(
+            msg.sender,
+            _vaultId[msg.sender][index],
+            voteCount
+        );
+    }
 
     // /// @dev Edit an existing transaction
     // /// @notice Editing can only be done if there are no votes to the transaction to prevent exploits

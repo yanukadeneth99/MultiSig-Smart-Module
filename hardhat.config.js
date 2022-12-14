@@ -30,7 +30,7 @@ module.exports = {
   networks: {
     hardhat: {
       chainId: 1337,
-      allowUnlimitedContractSize: true,
+      // allowUnlimitedContractSize: true,
     },
     safuux: {
       url: ``,
