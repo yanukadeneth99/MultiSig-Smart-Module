@@ -55,7 +55,7 @@ describe("MultiSig Contract should succeed every test", function () {
     expect(await multisigfactory.masterContract()).to.equal(multisig.address);
   });
 
-  it("Should be able to create a vault with two addresses", async function () {
+  xit("Should be able to create a vault with two addresses", async function () {
     // Created once
     expect(await aliceProxyContract.createVault([bob.address, cara.address])).to
       .not.reverted;
@@ -76,7 +76,7 @@ describe("MultiSig Contract should succeed every test", function () {
     expect(_reqVotes).to.equal(1);
   });
 
-  describe("Main Contract functionality checks", function () {
+  xdescribe("Main Contract functionality checks", function () {
     // Deploying all and creating a vault before every function
     beforeEach(async () => {
       await aliceProxyContract
@@ -221,7 +221,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_reqVotes).to.equal(2);
     });
 
-    xit("Should create a transaction and edit it", async () => {
+    it("Should create a transaction and edit it", async () => {
       // Creating transaction
       await expect(aliceProxyContract.createTransaction(0, cara.address, 2, []))
         .to.not.be.reverted;
@@ -257,7 +257,7 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(_amount).to.equal(5);
     });
 
-    xit("Should be able to perform a transaction", async () => {
+    it("Should be able to perform a transaction", async () => {
       // Saving Caras current balance
       const _caraBalance = await cara.getBalance();
 

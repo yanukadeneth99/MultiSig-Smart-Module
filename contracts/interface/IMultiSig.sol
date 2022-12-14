@@ -6,6 +6,8 @@ pragma solidity ^0.8.0;
 interface IMultiSig {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
+    function createVault(address[] calldata _userAddresses) external;
+
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ E V E N T S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
     // Emitted when a new vault is created
@@ -123,13 +125,11 @@ interface IMultiSig {
     /// @param done Whether the Transaction is executed
     /// @param amount The Vault passed in the transaction
     /// @param voteCount The number of votes done in this transaction
-    /// @param data The Data passed in the transaction
     struct TxObj {
         address to;
         bool done;
         uint256 amount;
         uint256 voteCount;
-        bytes data;
     }
 
     // TODO : ????

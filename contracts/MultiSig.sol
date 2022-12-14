@@ -222,7 +222,7 @@ contract MultiSig is
     /// @param _userAddresses All the addresses you wish to add as users
     function createVault(
         address[] calldata _userAddresses
-    ) external addressArrayCheck(_userAddresses) {
+    ) external virtual override addressArrayCheck(_userAddresses) {
         // Increment Vault Count
         _numOfVaults++;
 
@@ -261,20 +261,11 @@ contract MultiSig is
     /// @param index Your Vault Position ID
     /// @param to The Address to transfer
     /// @param value The amount in Wei
-    /// @param data Data to be passed in the transaction
     function createTransaction(
         uint256 index,
         address to,
-        uint256 value,
-        bytes calldata data
-    )
-        external
-        hasVault
-        indexInBounds(index)
-        notInactiveVault(index)
-        notZeroAddress(to)
-        callerNotInactive(index)
-    {
+        uint256 value
+    ) external {
         // Get Vault Object
         uint256 vaultId = _vaultId[msg.sender][index];
         Vault memory v = _vaults[vaultId];
@@ -285,7 +276,6 @@ contract MultiSig is
         // Set the data
         _tx.to = to;
         _tx.amount = value;
-        _tx.data = data;
 
         // Setting Values
         _transactions[vaultId][v.transactionCount++] = _tx;
@@ -303,14 +293,7 @@ contract MultiSig is
     function addUsers(
         uint256 index,
         address[] calldata _userAddresses
-    )
-        external
-        hasVault
-        indexInBounds(index)
-        notInactiveVault(index)
-        addressArrayCheck(_userAddresses)
-        isOwnerVault(index)
-    {
+    ) external {
         // Atleast one user should be passed
         require(_userAddresses.length > 0, "No address added");
 
@@ -354,17 +337,7 @@ contract MultiSig is
     /// @notice You need to add a user using `addUsers` first
     /// @param index Your Vault Position ID
     /// @param _ownerAddress The Address you want to make an owner
-    function makeOwner(
-        uint256 index,
-        address _ownerAddress
-    )
-        external
-        hasVault
-        indexInBounds(index)
-        notInactiveVault(index)
-        notZeroAddress(_ownerAddress)
-        isOwnerVault(index)
-    {
+    function makeOwner(uint256 index, address _ownerAddress) external {
         // Get Vault
         uint256 vaultId = _vaultId[msg.sender][index];
         Vault memory v = _vaults[vaultId];
@@ -393,16 +366,7 @@ contract MultiSig is
     /// @dev Set the Necessary Vote Count to approve any Transaction
     /// @param index Your Vault Position ID
     /// @param voteCount The Vote Count
-    function setVotesCount(
-        uint256 index,
-        uint256 voteCount
-    )
-        external
-        hasVault
-        indexInBounds(index)
-        notInactiveVault(index)
-        isOwnerVault(index)
-    {
+    function setVotesCount(uint256 index, uint256 voteCount) external {
         // Get the Vault Object
         uint256 vaultId = _vaultId[msg.sender][index];
         Vault memory v = _vaults[vaultId];
@@ -429,116 +393,95 @@ contract MultiSig is
         );
     }
 
-    // /// @dev Edit an existing transaction
-    // /// @notice Editing can only be done if there are no votes to the transaction to prevent exploits
-    // /// @param index Your Vault Position ID
-    // /// @param txIndex The transaction ID
-    // /// @param to The new Address to send
-    // /// @param amount The New Amount in Wei
-    // /// @param data The Data if present
-    // function editTransaction(
-    //     uint256 index,
-    //     uint256 txIndex,
-    //     address to,
-    //     uint256 amount,
-    //     bytes calldata data
-    // ) external hasVault indexInBounds(index) notZeroAddress(to) {
-    //     // Get Vault Object
-    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    /// @dev Edit an existing transaction
+    /// @notice Editing can only be done if there are no votes to the transaction to prevent exploits
+    /// @param index Your Vault Position ID
+    /// @param txIndex The transaction ID
+    /// @param to The new Address to send
+    /// @param amount The New Amount in Wei
+    function editTransaction(
+        uint256 index,
+        uint256 txIndex,
+        address to,
+        uint256 amount
+    ) external {
+        // Get Vault Object
+        uint256 vaultId = _vaultId[msg.sender][index];
+        Vault memory v = _vaults[vaultId];
 
-    //     // Check if the Status is Inactive and revert if so
-    //     if (_v.status == Status.INACTIVE) revert InActiveVault();
+        // If the transaction ID requested is higher than the current count, then revert
+        checkTransactionCount(v, txIndex);
 
-    //     // Check if the caller is not inactive
-    //     for (uint256 i; i < _v.userCount; i++) {
-    //         if (_v.users[i].person == msg.sender) {
-    //             if (_v.users[i].position == Position.INACTIVE) {
-    //                 revert Unauthorized();
-    //             }
-    //             break;
-    //         }
-    //     }
+        // Get the Transaction Object
+        TxObj memory transaction = _transactions[vaultId][txIndex];
 
-    //     // If the transaction ID requested is higher than the current count, then revert
-    //     uint256 _transCount = _v.transactionCount;
-    //     if (_transCount > 0) _transCount--;
-    //     if (txIndex > _transCount) revert InvalidTransactionID();
+        // Revert if there are votes already
+        if (transaction.voteCount > 0) revert VotedTransaction();
 
-    //     // Get the Transaction Object
-    //     TxObj storage _tx = _v.transactions[txIndex];
+        // Set the data
+        transaction.to = to;
+        transaction.amount = amount;
 
-    //     // Revert if there are votes already
-    //     if (_tx.voteCount > 0) revert VotedTransaction();
+        // Set the data
+        _transactions[vaultId][txIndex] = transaction;
 
-    //     // Change the data
-    //     _tx.to = to;
-    //     _tx.amount = amount;
-    //     _tx.data = data;
+        // Event emitted
+        emit TransactionEdited(msg.sender, vaultId, txIndex);
+    }
 
-    //     // Event emitted
-    //     emit TransactionEdited(
-    //         msg.sender,
-    //         _vaultId[msg.sender][index],
-    //         txIndex
-    //     );
-    // }
+    /// @dev Internal Function to revert if the transaction ID requested is more than what the vault holds
+    function checkTransactionCount(
+        Vault memory v,
+        uint256 txIndex
+    ) internal pure {
+        // If the transaction ID requested is higher than the current count, then revert
+        uint256 _transCount = v.transactionCount;
+        if (_transCount > 0) _transCount--;
+        if (txIndex > _transCount || v.transactionCount == 0)
+            revert InvalidTransactionID();
+    }
 
     // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ PERFORM - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // /// @dev Perform a Transaction
-    // /// @notice Anyone in the Vault can perform this provided the transaction is voted yes
-    // /// @param index Your Vault Position ID
-    // /// @param transactionId The Transaction ID
-    // function performTransaction(
-    //     uint256 index,
-    //     uint256 transactionId
-    // )
-    //     external
-    //     nonReentrant
-    //     hasVault
-    //     indexInBounds(index)
-    //     notInactiveVault(index)
-    // {
-    //     // Get Storage object
-    //     Vault storage _v = _vaults[_vaultId[msg.sender][index]];
+    /// @dev Perform a Transaction
+    /// @notice Anyone in the Vault can perform this provided the transaction is voted yes
+    /// @param index Your Vault Position ID
+    /// @param transactionId The Transaction ID
+    function performTransaction(uint256 index, uint256 transactionId) external {
+        // Get Vault object
+        uint256 vaultId = _vaultId[msg.sender][index];
+        Vault memory v = _vaults[vaultId];
 
-    //     // If the transaction ID requested is higher than the current count, then revert
-    //     uint256 _transCount = _v.transactionCount;
-    //     if (_transCount > 0) _transCount--;
-    //     if (transactionId > _transCount) revert InvalidTransactionID();
+        // If the transaction ID requested is higher than the current count, then revert
+        checkTransactionCount(v, transactionId);
 
-    //     // Get the Transaction Object
-    //     TxObj storage _tx = _v.transactions[transactionId];
+        // Get the Transaction Object
+        TxObj memory _tx = _transactions[vaultId][transactionId];
 
-    //     // The Transaction must not already be executed
-    //     require(!_tx.done, "Transaction already executed");
+        // The Transaction must not already be executed
+        require(!_tx.done, "Transaction already executed");
 
-    //     // The Transaction must have enough positive votes
-    //     uint256 _reqVotes = _v.votesReq;
-    //     uint256 yesVotes;
-    //     for (uint256 i; i < _tx.voteCount; i++) {
-    //         if (_tx.votes[i].vote) yesVotes++;
-    //     }
-    //     require(yesVotes >= _reqVotes, "Not enough Votes");
+        // The Transaction must have enough positive votes
+        uint256 _reqVotes = v.votesReq;
+        uint256 yesVotes;
+        for (uint256 i; i < _tx.voteCount; i++) {
+            // Make a Vote Object
+            Vote memory vt = _votes[transactionId][i];
+            if (vt.vote == VoteSelection.POSITIVE) yesVotes++;
+        }
+        require(yesVotes >= _reqVotes, "Not enough Votes");
 
-    //     // Confirm that there is ether remaining in the vault to transfer
-    //     if (_v.money < _tx.amount) revert NotEnoughEther();
+        // Confirm that there is ether remaining in the vault to transfer
+        if (v.money < _tx.amount) revert NotEnoughEther();
 
-    //     // All Good, proceed with the transaction
-    //     _tx.done = true;
-    //     (bool accept, ) = _tx.to.call{value: _tx.amount}(_tx.data);
-    //     require(accept, "Transaction Failed");
+        // All Good, proceed with the transaction
+        _transactions[vaultId][transactionId].done = true;
+        (bool accept, ) = _tx.to.call{value: _tx.amount}("");
+        require(accept, "Transaction Failed");
 
-    //     _tx.done = true;
-
-    //     // Emit Event
-    //     emit TransactionComplete(
-    //         _tx.to,
-    //         _vaultId[msg.sender][index],
-    //         transactionId,
-    //         _tx.amount
-    //     );
-    // }
+        // Emit Event
+        emit TransactionComplete(_tx.to, vaultId, transactionId, _tx.amount);
+    }
 
     // /// @dev Perform a Vote, Owners only
     // /// @param index Your Vault Position ID
@@ -751,7 +694,6 @@ contract MultiSig is
     /// @param transactionId The Transaction ID
     /// @return _to The Address to send the transaction
     /// @return _amount The Amount to transact
-    /// @return _data Any Data passed in the transaction
     /// @return _done Whether the transaction is executed (true - executed)
     /// @return _posVoteCount Number of people who votes yes
     /// @return _status The Status of the Vault (Active, or Inactive)
@@ -766,7 +708,6 @@ contract MultiSig is
         returns (
             address _to,
             uint256 _amount,
-            bytes memory _data,
             bool _done,
             uint256 _posVoteCount,
             Status _status
@@ -791,7 +732,6 @@ contract MultiSig is
         // Return the values
         _to = transaction.to;
         _amount = transaction.amount;
-        _data = transaction.data;
         _done = transaction.done;
         _posVoteCount = _posVotes;
         _status = _vaults[vaultId].status;

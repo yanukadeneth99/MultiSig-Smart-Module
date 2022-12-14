@@ -27,10 +27,15 @@ const accounts =
 module.exports = {
   solidity: "0.8.4",
   defaultNetwork: "hardhat",
+  // settings: {
+  //   optimizer: {
+  //     enabled: true,
+  //     runs: 2,
+  //   },
+  // },
   networks: {
     hardhat: {
       chainId: 1337,
-      // allowUnlimitedContractSize: true,
     },
     safuux: {
       url: ``,
@@ -39,12 +44,6 @@ module.exports = {
     goerli: {
       url: process.env.GOERLI_URL,
       accounts: [process.env.PRIVATE_KEY],
-    },
-  },
-  settings: {
-    optimizer: {
-      enabled: true,
-      runs: 1000,
     },
   },
 };

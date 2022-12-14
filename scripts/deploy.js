@@ -13,7 +13,7 @@ const main = async () => {
   const MultiSig = await hre.ethers.getContractFactory("MultiSig");
   const multisig = await MultiSig.deploy(hyperverseAdmin);
   await multisig.deployed();
-  console.log("Module Contract deployed to: ", multisig.address);
+  console.log("MultiSig Contract deployed to: ", multisig.address);
 
   // Deploy Factory
   const MultiSigFactory = await hre.ethers.getContractFactory(
