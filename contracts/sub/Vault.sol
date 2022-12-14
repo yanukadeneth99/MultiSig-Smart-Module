@@ -9,9 +9,6 @@ import "../helpers/ReentrancyGuard.sol";
 contract Vault is ReentrancyGuard {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T A T E @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // The total number of users in this Vault
-    uint256 public userCount;
-
     // The number of transactions in this Vault
     uint256 public transactionCount;
 
@@ -80,12 +77,6 @@ contract Vault is ReentrancyGuard {
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    /// @dev Added Users into this Vault
-    /// @param amount The Amount of users added into this vault.
-    function addUsers(uint256 amount) internal notInactiveVault {
-        userCount += amount;
-    }
-
     /// @dev Add one Transaction into the Vault
     function addTransaction() internal notInactiveVault {
         transactionCount++;
@@ -114,7 +105,6 @@ contract Vault is ReentrancyGuard {
     }
 
     /// @dev Get all the vault information
-    /// @return _userCount User Count
     /// @return _transactionCount The Transaction Count
     /// @return _votesReq The votes required to pass
     /// @return _money The amount this vault holds in wei
@@ -123,13 +113,12 @@ contract Vault is ReentrancyGuard {
         external
         view
         returns (
-            uint256 _userCount,
             uint256 _transactionCount,
             uint256 _votesReq,
             uint256 _money,
             Status _status
         )
     {
-        return (userCount, transactionCount, votesReq, money, status);
+        return (transactionCount, votesReq, money, status);
     }
 }
