@@ -354,23 +354,23 @@ describe("MultiSig Contract should succeed every test", function () {
       );
 
       // Casting positive vote
-      await expect(aliceProxyContract.castVote(0, 1, true)).to.not.be.reverted;
+      await expect(aliceProxyContract.castVote(0, 0, true)).to.not.be.reverted;
 
       // Casting positive vote again
       await expect(
-        aliceProxyContract.castVote(0, 1, true)
+        aliceProxyContract.castVote(0, 0, true)
       ).to.be.revertedWithCustomError(aliceProxyContract, "SameVote");
 
       {
-        const { _posVoteCount } = await aliceProxyContract.getTransaction(0, 1);
+        const { _posVoteCount } = await aliceProxyContract.getTransaction(0, 0);
         expect(_posVoteCount).to.equal(1);
       }
 
       // Change vote to No
-      await expect(aliceProxyContract.castVote(0, 1, false)).to.not.be.reverted;
+      await expect(aliceProxyContract.castVote(0, 0, false)).to.not.be.reverted;
 
       {
-        const { _posVoteCount } = await aliceProxyContract.getTransaction(0, 1);
+        const { _posVoteCount } = await aliceProxyContract.getTransaction(0, 0);
         expect(_posVoteCount).to.equal(0);
       }
 
