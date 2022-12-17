@@ -9,12 +9,11 @@ import "../helpers/ReentrancyGuard.sol";
 contract Vault is ReentrancyGuard {
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ S T A T E @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // User -> Vault IDs.
-    /// @dev Always starts with 1
+    // Vault ID => Vault Object
     mapping(uint256 => VaultObj) private _vaults;
 
     // Holds the current vaults count created
-    uint256 _numOfVaults;
+    uint256 public _numOfVaults;
 
     struct VaultObj {
         // Total votes required to pass a transaction (counted from the number of owners)

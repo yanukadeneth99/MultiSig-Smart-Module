@@ -212,16 +212,17 @@ contract MultiSig is
     /// @dev Creates a Vault
     /// @param _userAddresses All the addresses you wish to add as users
     function createVault(address[] calldata _userAddresses) external {
+        uint256 id = getNextVault();
         // Set Vote value and Enable Vault
-        setVotes(getNextVault(), 1);
-        enableVault(getNextVault());
+        setVotes(id, 1);
+        enableVault(id);
 
         // Add yourself as admin
-        _users.selfAdd();
+        selfAdd(id);
         _vaultId[msg.sender].push(_numOfVaults);
 
         // Add other users
-        _users.addUsers(_userAddresses);
+        addUsers(id,_userAddresses);
 
         // Increase Count
         createVault();
