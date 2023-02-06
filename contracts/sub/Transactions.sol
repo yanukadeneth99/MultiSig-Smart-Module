@@ -59,9 +59,11 @@ contract Transactions {
     /// @param txindex The Transaction ID
     modifier indexInBounds(uint256 index, uint256 txindex) {
         // Checking sent index
-        uint256 count = txindex;
-        if (transactionCount[index] > 0) count--;
-        if (txindex > count || count == 0) revert InvalidTransactionID();
+        uint256 count = transactionCount[index];
+        if (count == 0) revert InvalidTransactionID();
+
+        if (count > 0) count--;
+        if (txindex > count) revert InvalidTransactionID();
 
         _;
     }

@@ -659,11 +659,26 @@ contract MultiSig is
 
     /// @dev Returns Information about a Transaction
     /// @notice The caller must have a vault
+    // TODO Fix up return values
     function getTransaction(
         uint256 index,
         uint256 txindex
-    ) public view hasVault {
-        _getTransaction(index, txindex);
+    )
+        public
+        view
+        hasVault
+        indexBounds(index)
+        returns (
+            address _to,
+            uint256 _amount,
+            bytes memory _data,
+            bool _done,
+            uint256 votes
+        )
+    {
+        // Get Vault Object
+        uint256 vaultId = _vaultId[msg.sender][index];
+        (_to, _amount, _data, _done, votes) = _getTransaction(vaultId, txindex);
     }
 
     // /// @dev Get a Vault information

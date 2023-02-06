@@ -106,6 +106,7 @@ describe("MultiSig Contract should succeed every test", function () {
       await expect(
         aliceProxyContract.getTransaction(3, 33)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+
       // Calling Transaction data with wrong transaction index
       await expect(
         aliceProxyContract.getTransaction(0, 33)
@@ -115,15 +116,14 @@ describe("MultiSig Contract should succeed every test", function () {
       );
 
       // Getting Transaction Data
-      const { _to, _amount, _done, _posVoteCount, _status } =
+      const { _to, _amount, _done, votes } =
         await aliceProxyContract.getTransaction(0, 0);
 
       // Confirming
       expect(_to).to.equal(cara.address);
       expect(_amount).to.equal(2);
       expect(_done).to.be.false;
-      expect(_posVoteCount).to.equal(0);
-      expect(_status).to.equal(0);
+      expect(votes).to.equal(0);
     });
 
     xit("Should add a user", async () => {
