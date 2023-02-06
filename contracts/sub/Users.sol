@@ -85,7 +85,7 @@ contract Users {
     /// @dev Self add yourself to be the owner
     /// @notice Used at the start
     /// @param index The Vault ID
-    function selfAdd(uint256 index) internal {
+    function _selfAdd(uint256 index) internal {
         _users[index][userCount[index]].person = msg.sender;
         _users[index][userCount[index]++].position = Position.OWNER;
     }
@@ -93,7 +93,7 @@ contract Users {
     /// @dev Add in one user
     /// @param index The Vault ID
     /// @param user The user address you want to add
-    function addUser(
+    function _addUser(
         uint256 index,
         address user
     ) internal validIndex(index) notZeroAddress(user) owner(index) {
@@ -107,7 +107,7 @@ contract Users {
     /// @dev Add in Multiple users
     /// @param index Start of the Vault ID
     /// @param users The Array of users of you want to add
-    function addUsers(
+    function _addUsers(
         uint256 index,
         address[] calldata users
     ) internal owner(index) {

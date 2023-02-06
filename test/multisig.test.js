@@ -126,14 +126,15 @@ describe("MultiSig Contract should succeed every test", function () {
       expect(votes).to.equal(0);
     });
 
-    xit("Should add a user", async () => {
+    it("Should add a user", async () => {
       // Checking user not in a vault
       await expect(
         aliceProxyContract.connect(john).getAllVaultCount()
       ).to.be.revertedWithCustomError(aliceProxyContract, "AddressNotInAVault");
+
       // Adding user to a vault that doesn't exist
       await expect(
-        aliceProxyContract.connect(bob).addUsers(1, [])
+        aliceProxyContract.connect(bob).addUsers(1, [john.address])
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
 
       // Null address passing
@@ -154,7 +155,7 @@ describe("MultiSig Contract should succeed every test", function () {
       // Adding the same person again
       await expect(
         aliceProxyContract.connect(owner).addUsers(0, [john.address])
-      ).to.be.revertedWithCustomError(aliceProxyContract, "UserExists");
+      ).to.be.revertedWithCustomError(aliceProxyContract, "UserAlreadyExists");
     });
 
     xit("Should make a member as owner", async () => {

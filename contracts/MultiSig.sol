@@ -221,11 +221,11 @@ contract MultiSig is
         setVotes(id, 1);
 
         // Add yourself as admin
-        selfAdd(id);
+        _selfAdd(id);
         _vaultId[msg.sender].push(_numOfVaults);
 
         // Add other users
-        addUsers(id, _userAddresses);
+        _addUsers(id, _userAddresses);
 
         // Emit event
         emit VaultCreated(msg.sender, _numOfVaults, _userAddresses.length);
@@ -254,51 +254,35 @@ contract MultiSig is
         emit TransactionCreated(msg.sender, vaultId, transactionCount[vaultId]);
     }
 
-    // // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ADD - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+    // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ADD - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // /// @dev Owners are able to add users if the user already doesn't exist
-    // /// @param index Your Vault Position ID
-    // /// @param _userAddresses The userrs you want to add into your vault
-    // function addUsers(
-    //     uint256 index,
-    //     address[] calldata _userAddresses
-    // ) external {
-    //     // Atleast one user should be passed
-    //     require(_userAddresses.length > 0, "No address added");
+    /// @dev Owners are able to add users if the user already doesn't exist
+    /// @param index Your Vault Position ID
+    /// @param _userAddresses The userrs you want to add into your vault
+    function addUsers(
+        uint256 index,
+        address[] calldata _userAddresses
+    ) external indexBounds(index) {
+        // Atleast one user should be passed
+        require(_userAddresses.length > 0, "No address added");
 
-    //     // Get the Vault Object
-    //     uint256 vaultId = _vaultId[msg.sender][index];
-    //     Vault memory v = _vaults[vaultId];
+        // Get the Vault Object
+        uint256 vaultId = _vaultId[msg.sender][index];
 
-    //     // Revert if the user already exists
-    //     for (uint256 i; i < v.userCount; i++) {
-    //         // Get User Object
-    //         User memory u = _users[vaultId][i];
+        // Add Users
+        _addUsers(vaultId, _userAddresses);
 
-    //         // Loop over the user Address array
-    //         for (uint256 j; j < _userAddresses.length; j++) {
-    //             if (u.person == _userAddresses[j]) revert UserExists();
-    //         }
-    //     }
+        // Add The Vault ID Into all Users
+        for (uint256 i; i < _userAddresses.length; i++) {
+            _vaultId[_userAddresses[i]].push(vaultId);
+        }
 
-    //     // Add in the users
-    //     for (uint256 i; i < _userAddresses.length; i++) {
-    //         _users[vaultId][v.userCount++] = (
-    //             User(_userAddresses[i], Position.USER)
-    //         );
-    //         _vaultId[_userAddresses[i]].push(_numOfVaults);
-    //     }
+        // Add Self
+        _selfAdd(vaultId);
 
-    //     // Save User Count
-    //     _vaults[vaultId].userCount = v.userCount;
-
-    //     // Emit event
-    //     emit NewUsersAdded(
-    //         msg.sender,
-    //         _vaultId[msg.sender][index],
-    //         _userAddresses.length
-    //     );
-    // }
+        // Emit event
+        emit NewUsersAdded(msg.sender, vaultId, _userAddresses.length);
+    }
 
     // // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EDIT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -659,7 +643,13 @@ contract MultiSig is
 
     /// @dev Returns Information about a Transaction
     /// @notice The caller must have a vault
-    // TODO Fix up return values
+    /// @param index The Vault ID
+    /// @param txindex Transaction ID
+    /// @return _to The Address to send the transaction
+    /// @return _amount The Amount to transact
+    /// @return _data The Data passed
+    /// @return _done Whether the transaction is executed (true - executed)
+    /// @return votes Total votes count
     function getTransaction(
         uint256 index,
         uint256 txindex
