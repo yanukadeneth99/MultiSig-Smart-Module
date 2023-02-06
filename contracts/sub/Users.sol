@@ -85,7 +85,7 @@ contract Users {
     /// @dev Self add yourself to be the owner
     /// @notice Used at the start
     /// @param index The Vault ID
-    function selfAdd(uint256 index) internal validIndex(index) {
+    function selfAdd(uint256 index) internal {
         _users[index][userCount[index]].person = msg.sender;
         _users[index][userCount[index]++].position = Position.OWNER;
     }
@@ -110,7 +110,7 @@ contract Users {
     function addUsers(
         uint256 index,
         address[] calldata users
-    ) internal validIndex(index) owner(index) {
+    ) internal owner(index) {
         for (uint256 i; i < users.length; i++) {
             // Zero Address Check
             if (users[i] == address(0)) revert NullAddress();
@@ -238,7 +238,7 @@ contract Users {
     function isOwner(
         uint256 index,
         address user
-    ) internal view validIndex(index) notZeroAddress(user) returns (bool) {
+    ) internal view notZeroAddress(user) returns (bool) {
         for (uint256 i; i < userCount[index]; i++) {
             if (_users[index][i].person == user) {
                 if (_users[index][i].position == Position.OWNER) {

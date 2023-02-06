@@ -75,24 +75,24 @@ contract MultiSig is
     //     _;
     // }
 
-    // // Check if the caller has a vault
-    // modifier hasVault() {
-    //     if (_vaultId[msg.sender].length == 0) revert AddressNotInAVault();
-    //     _;
-    // }
+    // Check if the caller has a vault
+    modifier hasVault() {
+        if (_vaultId[msg.sender].length == 0) revert AddressNotInAVault();
+        _;
+    }
 
-    // // Check if the Vault index exists
-    // /// @param index Your Vault Position ID
-    // modifier indexInBounds(uint256 index) {
-    //     unchecked {
-    //         uint256 _id = _vaultId[msg.sender].length;
-    //         if (_id > 0) _id--;
-    //         if (index > _id) revert InvalidVault();
+    // Check if the Vault index exists
+    /// @param index Your Vault Position ID
+    modifier indexBounds(uint256 index) {
+        unchecked {
+            uint256 _id = _vaultId[msg.sender].length;
+            if (_id > 0) _id--;
+            if (index > _id) revert InvalidVault();
 
-    //         // Do not need a check for `0` since `hasVault()` already checks this.
-    //     }
-    //     _;
-    // }
+            // Do not need a check for `0` since `hasVault()` already checks this.
+        }
+        _;
+    }
 
     // // Check if the caller is the owner of the vault
     // /// @param index Your Vault Position ID
@@ -213,19 +213,19 @@ contract MultiSig is
     /// @param _userAddresses All the addresses you wish to add as users
     function createVault(address[] calldata _userAddresses) external {
         uint256 id = getNextVault();
-        // Set Vote value and Enable Vault
+
+        // Increase Count
+        createVault();
+
+        // Set Vote value
         setVotes(id, 1);
-        enableVault(id);
 
         // Add yourself as admin
         selfAdd(id);
         _vaultId[msg.sender].push(_numOfVaults);
 
         // Add other users
-        addUsers(id,_userAddresses);
-
-        // Increase Count
-        createVault();
+        addUsers(id, _userAddresses);
 
         // Emit event
         emit VaultCreated(msg.sender, _numOfVaults, _userAddresses.length);
@@ -233,33 +233,26 @@ contract MultiSig is
 
     function setUsersVaults() private {}
 
-    // /// @dev Create a Transaction with Data
-    // /// @param index Your Vault Position ID
-    // /// @param to The Address to transfer
-    // /// @param value The amount in Wei
-    // function createTransaction(
-    //     uint256 index,
-    //     address to,
-    //     uint256 value
-    // ) external {
-    //     // Get Vault Object
-    //     uint256 vaultId = _vaultId[msg.sender][index];
-    //     Vault memory v = _vaults[vaultId];
+    /// @dev Create a Transaction with Data
+    /// @param index Your Vault Position ID
+    /// @param to The Address to transfer
+    /// @param value The amount in Wei
+    /// @param data The Data Passed
+    function transactionCreate(
+        uint256 index,
+        address to,
+        uint256 value,
+        bytes calldata data
+    ) external indexBounds(index) {
+        // Get Vault Object
+        uint256 vaultId = _vaultId[msg.sender][index];
 
-    //     // Creating a transaction Object
-    //     TxObj memory _tx;
+        // Create Transaction
+        createTransaction(vaultId, to, value, data);
 
-    //     // Set the data
-    //     _tx.to = to;
-    //     _tx.amount = value;
-
-    //     // Setting Values
-    //     _transactions[vaultId][v.transactionCount++] = _tx;
-    //     _vaults[vaultId].transactionCount = v.transactionCount;
-
-    //     // Emit event
-    //     emit TransactionCreated(msg.sender, vaultId, v.transactionCount--);
-    // }
+        // Emit event
+        emit TransactionCreated(msg.sender, vaultId, transactionCount[vaultId]);
+    }
 
     // // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ADD - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
@@ -653,65 +646,25 @@ contract MultiSig is
 
     // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ GETTER - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // /// @dev Get All the Vault IDs the caller has joined
-    // /// @return All the Vault IDs the user has joined - `uint256[]`
-    // function getAllVaultCount()
-    //     external
-    //     view
-    //     hasVault
-    //     returns (uint256[] memory)
-    // {
-    //     return _vaultId[msg.sender];
-    // }
+    /// @dev Get All the Vault IDs the caller has joined
+    /// @return All the Vault IDs the user has joined - `uint256[]`
+    function getAllVaultCount()
+        external
+        view
+        hasVault
+        returns (uint256[] memory)
+    {
+        return _vaultId[msg.sender];
+    }
 
-    // /// @dev Returns Information about a Transaction
-    // /// @notice The caller must have a vault
-    // /// @param index Your Vault Position ID
-    // /// @param transactionId The Transaction ID
-    // /// @return _to The Address to send the transaction
-    // /// @return _amount The Amount to transact
-    // /// @return _done Whether the transaction is executed (true - executed)
-    // /// @return _posVoteCount Number of people who votes yes
-    // /// @return _status The Status of the Vault (Active, or Inactive)
-    // function getTransaction(
-    //     uint256 index,
-    //     uint256 transactionId
-    // )
-    //     external
-    //     view
-    //     hasVault
-    //     indexInBounds(index)
-    //     returns (
-    //         address _to,
-    //         uint256 _amount,
-    //         bool _done,
-    //         uint256 _posVoteCount,
-    //         Status _status
-    //     )
-    // {
-    //     // Get Vault Object
-    //     uint256 vaultId = _vaultId[msg.sender][index];
-
-    //     // Get the Transaction Object
-    //     TxObj memory transaction = _transactions[vaultId][transactionId];
-
-    //     // Revert if the transaction does not exist
-    //     if (transaction.to == address(0)) revert InvalidTransactionID();
-
-    //     // Get the Positive Vote Count
-    //     uint256 _posVotes;
-    //     for (uint256 i; i < transaction.voteCount; i++) {
-    //         if (_votes[transactionId][i].vote == VoteSelection.POSITIVE)
-    //             _posVotes++;
-    //     }
-
-    //     // Return the values
-    //     _to = transaction.to;
-    //     _amount = transaction.amount;
-    //     _done = transaction.done;
-    //     _posVoteCount = _posVotes;
-    //     _status = _vaults[vaultId].status;
-    // }
+    /// @dev Returns Information about a Transaction
+    /// @notice The caller must have a vault
+    function getTransaction(
+        uint256 index,
+        uint256 txindex
+    ) public view hasVault {
+        _getTransaction(index, txindex);
+    }
 
     // /// @dev Get a Vault information
     // /// @notice Anyone can perform this
@@ -760,11 +713,11 @@ contract MultiSig is
     //     _money = v.money;
     // }
 
-    // /// @dev Get the Total Number of Vaults present
-    // /// @return The total number of vaults - `uint256`
-    // function getNoOfVaults() external view returns (uint256) {
-    //     return _numOfVaults;
-    // }
+    /// @dev Get the Total Number of Vaults present
+    /// @return The total number of vaults - `uint256`
+    function getNoOfVaults() external view returns (uint256) {
+        return _numOfVaults;
+    }
 
     // // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ MONEY - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 

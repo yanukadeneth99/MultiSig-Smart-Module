@@ -119,8 +119,8 @@ interface IMultiSig {
     // // Triggered when there is no vault
     // error InvalidVault();
 
-    // // Triggered when a functionality is done on an address that does not belong to any vault
-    // error AddressNotInAVault();
+    // Triggered when a functionality is done on an address that does not belong to any vault
+    error AddressNotInAVault();
 
     // // Triggered when a caller uses a function that only a owner can do
     // error NotAnOwner();
