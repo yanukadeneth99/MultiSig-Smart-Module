@@ -128,7 +128,7 @@ contract Users {
     /// @dev Make an added User an Owner
     /// @param index Vault ID
     /// @param user The user you want to make an Owner
-    function makeOwner(
+    function _makeOwner(
         uint256 index,
         address user
     ) internal validIndex(index) notZeroAddress(user) owner(index) {
@@ -287,4 +287,6 @@ contract Users {
             if (_users[index][i].person == user) revert UserAlreadyExists();
         }
     }
+
+    // Gets the User Information Out
 }

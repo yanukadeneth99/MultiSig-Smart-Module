@@ -158,32 +158,24 @@ describe("MultiSig Contract should succeed every test", function () {
       ).to.be.revertedWithCustomError(aliceProxyContract, "UserAlreadyExists");
     });
 
-    xit("Should make a member as owner", async () => {
-      // Initial Confirmation
-      {
-        const { _allusers } = await aliceProxyContract.getVault(1);
-        // Since I know the 0 index is Cara
-        expect(_allusers[0].person).to.equal(cara.address);
-        expect(_allusers[0].position).to.equal(1);
-      }
+    it("Should make a member as owner", async () => {
+      // Adding user
+      await expect(
+        aliceProxyContract.connect(owner).addUsers(0, [john.address])
+      ).to.not.be.reverted;
 
       // Passing invalid vault index
       await expect(
-        aliceProxyContract.connect(bob).makeOwner(2, cara.address)
+        aliceProxyContract.connect(owner).makeOwner(2, john.address)
       ).to.be.revertedWithCustomError(aliceProxyContract, "InvalidVault");
+
       // Checking function with a non-admin user
       await expect(
-        aliceProxyContract.connect(bob).makeOwner(0, cara.address)
-      ).to.be.revertedWithCustomError(aliceProxyContract, "NotAnOwner");
+        aliceProxyContract.connect(john).makeOwner(0, john.address)
+      ).to.be.revertedWithCustomError(aliceProxyContract, "Unauthorized");
 
       // Making Cara an owner
-      await aliceProxyContract.makeOwner(0, cara.address);
-
-      // Confirmation
-      const { _allusers } = await aliceProxyContract.getVault(1);
-      // Since I know the 0 index is Cara
-      expect(_allusers[0].person).to.equal(cara.address);
-      expect(_allusers[0].position).to.equal(2);
+      await aliceProxyContract.makeOwner(0, john.address);
     });
 
     xit("Should set votes count", async () => {

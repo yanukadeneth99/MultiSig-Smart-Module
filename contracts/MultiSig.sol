@@ -284,37 +284,25 @@ contract MultiSig is
         emit NewUsersAdded(msg.sender, vaultId, _userAddresses.length);
     }
 
-    // // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EDIT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+    // /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@ EDIT - F U N C T I O N S @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
-    // /// @dev Make an added User as Owner
-    // /// @notice You need to add a user using `addUsers` first
-    // /// @param index Your Vault Position ID
-    // /// @param _ownerAddress The Address you want to make an owner
-    // function makeOwner(uint256 index, address _ownerAddress) external {
-    //     // Get Vault
-    //     uint256 vaultId = _vaultId[msg.sender][index];
-    //     Vault memory v = _vaults[vaultId];
+    /// @dev Make an added User as Owner
+    /// @notice You need to add a user using `addUsers` first
+    /// @param index Your Vault Position ID
+    /// @param _ownerAddress The Address you want to make an owner
+    function makeOwner(
+        uint256 index,
+        address _ownerAddress
+    ) external indexBounds(index) {
+        // Get Vault
+        uint256 vaultId = _vaultId[msg.sender][index];
 
-    //     // Flag
-    //     bool done;
+        // Make Owner
+        _makeOwner(vaultId, _ownerAddress);
 
-    //     // Make the address an admin if it exists
-    //     for (uint256 i; i < v.userCount; i++) {
-    //         // Create a user Object
-    //         User memory u = _users[vaultId][i];
-    //         if (_ownerAddress == u.person && u.position != Position.INACTIVE) {
-    //             _users[vaultId][i].position = Position.OWNER;
-    //             done = true;
-    //             break;
-    //         }
-    //     }
-
-    //     // If User not found, revert
-    //     if (!done) revert UserNotFound();
-
-    //     // Event emitted
-    //     emit MadeOwner(msg.sender, vaultId, _ownerAddress);
-    // }
+        // Event emitted
+        emit MadeOwner(msg.sender, vaultId, _ownerAddress);
+    }
 
     // /// @dev Set the Necessary Vote Count to approve any Transaction
     // /// @param index Your Vault Position ID
